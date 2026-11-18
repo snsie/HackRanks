@@ -114,8 +114,8 @@ main { padding-block: 22px 60px; }
 table { border-collapse: collapse; width: 100%; font-size: .88rem; }
 th, td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
 thead th { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; white-space: nowrap; background: var(--surface); position: sticky; top: 0; }
-th.sortable { cursor: pointer; }
-th.sortable:hover { color: var(--ink); }
+th.sortable button { border: 0; padding: 0; background: transparent; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+th.sortable button:hover { color: var(--ink); }
 th .arrow { font-size: .7rem; }
 td.r, th.r { text-align: right; }
 td.c, th.c { text-align: center; }
@@ -236,6 +236,7 @@ details.desc ul { margin: 6px 0 0; padding-left: 18px; font-size: .84rem; color:
     </div>
     <nav class="tabs" aria-label="Views">
       <a href="#overview" data-view="overview">Overview</a>
+      <a href="#test-results" data-view="test-results">Test results</a>
       <a href="#teams" data-view="teams">Team sheets</a>
       <a href="#compare" data-view="compare">Compare</a>
       <a href="#field" data-view="field">Field analysis</a>
@@ -246,6 +247,7 @@ details.desc ul { margin: 6px 0 0; padding-left: 18px; font-size: .84rem; color:
 
 <main class="wrap">
   <section class="view" id="view-overview"></section>
+  <section class="view" id="view-test-results" hidden></section>
   <section class="view" id="view-teams" hidden></section>
   <section class="view" id="view-compare" hidden></section>
   <section class="view" id="view-field" hidden></section>
@@ -305,8 +307,8 @@ const TEAMS = [
   results: ["5-fold CV mean 97.71% (single model) → 99.15% (final)", "Official split 99.38%, macro AUC 99.99%", "Errors per fold 55 → 20; pancreas ↔ kidney is 47 of 102 remaining errors", "Ablation table of 10 ideas with kept / dropped verdicts"],
   strengths: ["Exposes seed variance others ignored (the 'seed lottery') and evaluates on 25 runs", "Only team to name clinical users and uses: organ tagging, segmentation QC, routing to organ-specific models, report pre-fill", "Names concrete steps toward clinical use: 3-D localization, multi-site validation, calibrated deferral to a radiologist"],
   gaps: ["The inference system is a 10-model output ensemble plus a training-image lookup, which may conflict with the one-model rule", "Final members retrained on all 16,800 crops, which includes the 2,400 validation images", "Clinical slide was added at a mentor's request; it lists uses but cites no evidence or workflow data"],
-  flags: [{ lvl: "danger", t: "Rule check needed. Other teams describe the rules as one model, one forward pass, train folder only (Carlos_Funk: averaging model outputs is 'not allowed'). ZARN averages the cosines of 10 members, adds a training-image cache at inference, and retrains on train + val. Confirm with the organizers before ranking." }, { lvl: "info", t: "Team lists a faculty member (Dr. Naveen Baskaran). Check for conflicts of interest on the panel." }],
-  questions: ["How does a 10-member ensemble with an image cache satisfy the single-model, cosine-only rule?", "If members were retrained on all 16,800 crops, which number is a clean held-out estimate?", "What would calibrated deferral look like in a radiology worklist?"],
+  flags: [{ lvl: "info", t: "Team lists a faculty member (Dr. Naveen Baskaran). Check for conflicts of interest on the panel." }],
+  questions: ["How would a single model perform without the ensemble and image cache?", "If members were retrained on all 16,800 crops, which number is a clean held-out estimate?", "What would calibrated deferral look like in a radiology worklist?"],
   sugg: { c1: [4, "Only team with a clinical-relevance slide: names users, use cases and future validation, though without evidence."], c2: [4, "Most rigorous variance analysis in the field (5 folds × 5 seeds); held at 4 because of open rule-compliance questions and training on val."], c3: [4, "Mixed-resolution ensemble plus a label-free image cache is a creative combination; the parts are known methods."], c4: [3, "Mentions deferral to a radiologist and multi-site validation; no bias, privacy or safety analysis."], c5: [3, "Next steps are named (3-D localization, multi-site data, calibrated deferral) but without partners, resources or a timeline."], c6: [4, "Clear numbered storyline and an honest 'will it hold' slide; some dense slides."] } },
 
 { id: "3-little-piggies", name: "3 Little Piggies", file: "summary_3_Little_Piggies.pptx", slides: 10,
@@ -605,9 +607,34 @@ const TEAMS = [
   results: ["CV folds 96.77–98.06%, mean 97.39%", "Official validation: not reported"],
   strengths: ["Original layer-aware adapter design", "Selects on worst-template accuracy, a sensible robustness criterion", "Explicitly refuses to present unverified metrics"],
   gaps: ["No official validation score, so results can't be compared with other teams", "Placeholders and to-dos left in the deck", "No team members listed"],
-  flags: [{ lvl: "danger", t: "Incomplete submission: no official validation result, and run scripts may not exist. Confirm with the organizers whether a scored checkpoint was submitted." }, { lvl: "warn", t: "Team members are not listed anywhere in the deck." }],
-  questions: ["Was a checkpoint submitted for the hidden test, and does it run with evaluate.py?"],
+  flags: [{ lvl: "warn", t: "Team members are not listed anywhere in the deck." }],
+  questions: ["What was missing from the version submitted at the deadline?"],
   sugg: { c1: [2, "No clinical framing."], c2: [2, "Partially working: CV results only, official evaluation pending."], c3: [3, "Layer-aware LoRA with spatial adapters is a creative design."], c4: [2, "Transparent about unverified metrics; nothing else."], c5: [1, "No path to use; reproducibility steps incomplete."], c6: [1, "Unfinished deck with placeholders and slides out of order."] } }
+];
+
+/* Organizer-provided held-out test results from Final_rank.csv, in published rank order. */
+const TEST_RESULTS = [
+  { id: "kong-skull-island", rank: 1, ba: 0.9566, auc: 0.9982, f1: 0.9544, seconds: 37.3 },
+  { id: "git-happens", rank: 2, ba: 0.951, auc: 0.9903, f1: 0.9502, seconds: 76 },
+  { id: "emperors", rank: 3, ba: 0.9489, auc: 0.9955, f1: 0.9479, seconds: 47.2 },
+  { id: "carlos-funk", rank: 4, ba: 0.9438, auc: 0.9973, f1: 0.9408, seconds: 47.1 },
+  { id: "cmil-rockstars", rank: 5, ba: 0.9425, auc: 0.9967, f1: 0.9396, seconds: 179.3 },
+  { id: "hackit", rank: 6, ba: 0.9422, auc: 0.9954, f1: 0.9383, seconds: 37.8 },
+  { id: "outliers", rank: 7, ba: 0.9414, auc: 0.9971, f1: 0.9369, seconds: 37.2 },
+  { id: "3-little-piggies", rank: 8, ba: 0.9392, auc: 0.9966, f1: 0.9346, seconds: 214.4 },
+  { id: "moe", rank: 9, ba: 0.9377, auc: 0.9968, f1: 0.9367, seconds: 47.5 },
+  { id: "eyegem", rank: 10, ba: 0.9376, auc: 0.9949, f1: 0.9327, seconds: 99.2 },
+  { id: "falcons", rank: 11, ba: 0.9368, auc: 0.9937, f1: 0.9326, seconds: 39.5 },
+  { id: "iarg", rank: 12, ba: 0.9358, auc: 0.9962, f1: 0.9331, seconds: 47.5 },
+  { id: "tbd-team-a", rank: 13, ba: 0.9316, auc: 0.9953, f1: 0.9246, seconds: 116.2 },
+  { id: "unknown-variables", rank: 14, ba: 0.9315, auc: 0.9947, f1: 0.9296, seconds: 37.4 },
+  { id: "setu", rank: 15, ba: 0.9315, auc: 0.9939, f1: 0.9289, seconds: 37 },
+  { id: "tbd-team-c", rank: 16, ba: 0.9305, auc: 0.996, f1: 0.9267, seconds: 37.9 },
+  { id: "two-brain-cells", rank: 17, ba: 0.9183, auc: 0.9912, f1: 0.9131, seconds: 36.8 },
+  { id: "tbd-team-g", rank: 18, ba: 0.9133, auc: 0.993, f1: 0.9136, seconds: 36 },
+  { id: "ufigemt", rank: 19, ba: 0.8999, auc: 0.9912, f1: 0.8957, seconds: 38.1 },
+  { id: "zarn-vision", rank: null, ba: 0.952, auc: 0.9979, f1: 0.9501, seconds: 575.8, note: "The submission used a 10-model ensemble at inference. The final model.py was required to use a single fine-tuned BiomedCLIP model." },
+  { id: "visiontron", rank: null, ba: 0.923, auc: 0.9947, f1: 0.9278, seconds: 52.3, note: "The 2:00 PM submission did not meet the requirements. These metrics come from the version submitted at 2:20 PM." },
 ];
 
 /* ---------------- Helpers ---------------- */
@@ -615,6 +642,14 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pct = (v, d = 2) => v == null ? "—" : (v * 100).toFixed(d) + "%";
 const byId = Object.fromEntries(TEAMS.map(t => [t.id, t]));
+const testById = Object.fromEntries(TEST_RESULTS.map(r => [r.id, r]));
+const testRank = r => r.rank == null ? "Reference only" : "#" + r.rank;
+const testMetrics = [
+  ["Balanced accuracy", r => pct(r.ba)],
+  ["Macro AUC", r => r.auc.toFixed(4)],
+  ["Macro F1", r => r.f1.toFixed(4)],
+  ["Total inference time (s)", r => r.seconds.toFixed(1)]
+];
 
 /* Submission downloads: decks live in submissions/ next to this page. */
 const FILE_BYTES = {
@@ -727,7 +762,6 @@ function scoreCell(id, k, t) {
 }
 function flagPills(t) {
   const out = [];
-  t.flags.forEach(f => { if (f.lvl === "danger") out.push(`<span class="pill danger">${t.id === "visiontron" ? "Incomplete" : "Rule check"}</span>`); });
   if (t.flags.some(f => /not listed/.test(f.t))) out.push(`<span class="pill warn">No roster</span>`);
   if (t.flags.some(f => /faculty/.test(f.t))) out.push(`<span class="pill warn">Faculty member</span>`);
   if (S.sheet.teams[t.id]?.coi) out.push(`<span class="pill danger">Recused</span>`);
@@ -737,6 +771,7 @@ function sortVal(t, key) {
   switch (key) {
     case "name": return t.name.toLowerCase();
     case "ba": return t.ba ?? -1;
+    case "testRank": return testById[t.id].rank;
     case "err": return t.err ?? 9999;
     case "sugg": return suggTotal(t);
     case "mine": return myTotal(t.id) ?? -1;
@@ -751,11 +786,15 @@ function renderOverview() {
   const scored = TEAMS.filter(t => myCount(t.id) === 6).length;
   const rows = [...TEAMS].sort((a, b) => {
     const va = sortVal(a, S.sort.key), vb = sortVal(b, S.sort.key);
+    if (S.sort.key === "testRank") {
+      if (va == null) return vb == null ? 0 : 1;
+      if (vb == null) return -1;
+    }
     if (va < vb) return -1 * S.sort.dir; if (va > vb) return 1 * S.sort.dir; return 0;
   });
   const head = (key, label, cls = "") => {
     const on = S.sort.key === key;
-    return `<th class="sortable ${cls}" data-sort="${key}" aria-sort="${on ? (S.sort.dir > 0 ? "ascending" : "descending") : "none"}">${label} <span class="arrow">${on ? (S.sort.dir > 0 ? "▲" : "▼") : ""}</span></th>`;
+    return `<th class="sortable ${cls}" scope="col" aria-sort="${on ? (S.sort.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${key}">${label} <span class="arrow" aria-hidden="true">${on ? (S.sort.dir > 0 ? "▲" : "▼") : ""}</span></button></th>`;
   };
   el.innerHTML = `
     <div class="strip">
@@ -767,9 +806,8 @@ function renderOverview() {
     <div class="callout">
       <h4 style="color:var(--warn)">Before you score</h4>
       <ul>
-        <li>Every team solved the organizer-set task of naming the organ in a 224 × 224 CT crop with BiomedCLIP image–text similarity. Validation scores sit within about 1.3 points of each other, so differences in <b>rigor, honesty and framing</b> separate the teams more than accuracy does.</li>
+        <li>Every team solved the organizer-set task of naming the organ in a 224 × 224 CT crop with BiomedCLIP image–text similarity. Validation scores sit within about 1.3 points of each other. See the <a class="team-link" href="#test-results">held-out test results</a> for the model leaderboard and inference times.</li>
         <li>Only ZARN Vision argues clinical relevance or a path to adoption. Most teams will cluster at 2 on Clinical (25 pts) and 1–2 on Feasibility. Agree as a panel how to read those criteria for an assigned technical task.</li>
-        <li>Two submissions need an organizer check: <a class="team-link" href="#team-zarn-vision">ZARN Vision</a> (10-model ensemble, inference-time image cache, trained on val) and <a class="team-link" href="#team-visiontron">VisionTron</a> (no official validation result).</li>
         <li>3 Little Piggies show that crop artifacts alone predict the organ at 0.917 accuracy, so every team's score may partly reflect acquisition artifacts rather than anatomy.</li>
       </ul>
     </div>
@@ -785,6 +823,8 @@ function renderOverview() {
             ${head("name", "Team")}
             <th>Deck</th>
             ${head("ba", "Val BA", "r")}
+            <th class="r" scope="col">Test BA</th>
+            ${head("testRank", "Test rank", "r")}
             ${head("err", "Errors", "r")}
             ${CRIT.map(c => head(c.k, `${c.short} <span class="muted">${c.w}</span>`, "c")).join("")}
             ${S.showSugg ? head("sugg", "Draft /100", "r") : ""}
@@ -795,10 +835,13 @@ function renderOverview() {
           <tbody>
             ${rows.map(t => {
               const st = suggTotal(t), mt = myTotal(t.id);
+              const test = testById[t.id];
               return `<tr>
                 <td><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></td>
                 <td>${deckLink(t)}</td>
                 <td class="r num">${t.ba != null ? pct(t.ba) : `<span class="muted" title="${esc(t.cvNote || "")}">CV only</span>`}</td>
+                <td class="r num">${pct(test.ba)}</td>
+                <td class="r">${testRank(test)}</td>
                 <td class="r num">${t.err != null ? (t.errApprox ? "≈" : "") + t.err : "—"}</td>
                 ${CRIT.map(c => `<td class="c">${scoreCell(t.id, c.k, t)}</td>`).join("")}
                 ${S.showSugg ? `<td class="r num">${fmt1(st)}</td>` : ""}
@@ -810,13 +853,44 @@ function renderOverview() {
           </tbody>
         </table>
       </div>
-      <p class="muted" style="font-size:.8rem;margin-top:10px">Val BA is the balanced accuracy each team reports on the 2,400-image validation set from the organizers' evaluate.py. ≈ marks error counts derived from balanced accuracy where the deck gives none. Hidden-test scores are not in the submissions.</p>
+      <p class="muted" style="font-size:.8rem;margin-top:10px">Val BA is the balanced accuracy each team reports on the 2,400-image validation set from the organizers' evaluate.py. ≈ marks error counts derived from balanced accuracy where the deck gives none. Test BA and rank come from the organizers’ held-out evaluation. Rubric totals are calculated from the six scoring criteria.</p>
     </div>`;
-  el.querySelectorAll("th.sortable").forEach(th => th.addEventListener("click", () => {
-    const k = th.dataset.sort;
-    if (S.sort.key === k) S.sort.dir *= -1; else { S.sort.key = k; S.sort.dir = (k === "name" || k === "err") ? 1 : -1; }
+  el.querySelectorAll("button[data-sort]").forEach(button => button.addEventListener("click", () => {
+    const k = button.dataset.sort;
+    if (S.sort.key === k) S.sort.dir *= -1; else { S.sort.key = k; S.sort.dir = ["name", "err", "testRank"].includes(k) ? 1 : -1; }
     renderOverview();
+    el.querySelector(`button[data-sort="${k}"]`).focus();
   }));
+}
+
+/* ---------------- Rendering: test results ---------------- */
+function renderTestResults() {
+  const resultRow = r => `<tr>
+    <td>${testRank(r)}</td>
+    <th scope="row"><a class="team-link" href="#team-${r.id}">${esc(byId[r.id].name)}</a></th>
+    ${testMetrics.map(([, format]) => `<td class="r num">${format(r)}</td>`).join("")}
+  </tr>`;
+  const ranked = TEST_RESULTS.filter(r => r.rank != null);
+  const reference = TEST_RESULTS.filter(r => r.rank == null);
+  const table = results => `<div class="scroll" style="margin-top:10px">
+    <table>
+      <thead><tr><th scope="col">Rank</th><th scope="col">Team</th>
+        ${testMetrics.map(([label]) => `<th scope="col" class="r">${label}</th>`).join("")}
+      </tr></thead>
+      <tbody>${results.map(resultRow).join("")}</tbody>
+    </table>
+  </div>`;
+  $("#view-test-results").innerHTML = `
+    <section class="panel" aria-labelledby="test-ranking">
+      <h2 id="test-ranking">Held-out test leaderboard</h2>
+      <p class="lede" style="margin-top:6px">The organizers ranked ${ranked.length} submissions using balanced accuracy as the primary metric. These ranks reflect model performance on the held-out test set.</p>
+      ${table(ranked)}
+    </section>
+    <section class="panel" aria-labelledby="test-reference">
+      <h3 id="test-reference">Reference-only results</h3>
+      ${table(reference)}
+      <ul class="tight">${reference.map(r => `<li><b>${esc(byId[r.id].name)}</b> · ${esc(r.note)}</li>`).join("")}</ul>
+    </section>`;
 }
 
 /* ---------------- Rendering: team sheet ---------------- */
@@ -824,6 +898,7 @@ function renderTeams() {
   const el = $("#view-teams");
   const t = byId[S.current];
   const idx = TEAMS.indexOf(t);
+  const test = testById[t.id];
   const sh = sheetOf(t.id);
   const mt = myTotal(t.id);
   const partial = CRIT.reduce((a, c) => a + pts(sh.s[c.k], c.w), 0);
@@ -843,12 +918,20 @@ function renderTeams() {
           <p class="file">${deckLink(t, `↓ Download submission (${deckKind(t)}, ${humanSize(FILE_BYTES[t.file] || 0)})`)} · ${esc(t.file)} · ${t.slides} slides</p>
           <div class="tiles" style="margin-top:8px">
             <div class="tile"><div class="v">${t.ba != null ? pct(t.ba) : "—"}</div><div class="k">Val balanced accuracy</div></div>
-            <div class="tile"><div class="v">${t.auc != null ? t.auc.toFixed(4) : "—"}</div><div class="k">Macro AUC</div></div>
+            <div class="tile"><div class="v">${t.auc != null ? t.auc.toFixed(4) : "—"}</div><div class="k">Val macro AUC</div></div>
             <div class="tile"><div class="v">${t.err != null ? (t.errApprox ? "≈" : "") + t.err : "—"}</div><div class="k">Val errors of 2,400</div></div>
             ${t.views ? `<div class="tile"><div class="v" style="font-size:.95rem">${t.views.map(v => (v * 100).toFixed(1)).join(" / ")}</div><div class="k">Axial / coronal / sagittal %</div></div>` : ""}
           </div>
           <p class="muted" style="font-size:.8rem">${esc(t.baNote || "")}${t.cvNote ? " · " + esc(t.cvNote) : ""}${t.errNote ? " · errors: " + esc(t.errNote) : ""}</p>
         </div>
+        <section class="panel" aria-labelledby="team-test-results">
+          <h3 id="team-test-results">Held-out test results</h3>
+          <p style="margin-top:6px"><a class="team-link" href="#test-results">Test rank</a> · ${testRank(test)}</p>
+          <div class="tiles" style="margin-top:8px">
+            ${testMetrics.map(([label, format]) => `<div class="tile"><div class="v">${format(test)}</div><div class="k">${label}</div></div>`).join("")}
+          </div>
+          ${test.note ? `<p class="muted" style="margin-top:6px">${esc(test.note)}</p>` : ""}
+        </section>
         ${t.flags.length ? `<div class="stack">${t.flags.map(f => `<div class="flag ${f.lvl}"><b>${f.lvl === "danger" ? "Check" : f.lvl === "warn" ? "Note" : "Context"}</b><span>${esc(f.t)}</span></div>`).join("")}</div>` : ""}
         <div class="panel">
           <h4>Overview</h4>
@@ -938,7 +1021,10 @@ function renderCompare() {
     ${sel.length ? `<div class="panel"><div class="scroll"><table class="cmp">
       <thead><tr><th scope="col"></th>${sel.map(t => `<th scope="col"><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a><br>${deckLink(t, `↓ ${deckKind(t)}, ${humanSize(FILE_BYTES[t.file] || 0)}`)}</th>`).join("")}</tr></thead>
       <tbody>
-        ${sec("Results")}
+        ${sec("Held-out test results")}
+        ${row("Test rank", t => testRank(testById[t.id]))}
+        ${testMetrics.map(([label, format]) => row(label, t => `<span class="num">${format(testById[t.id])}</span>`)).join("")}
+        ${sec("Validation results")}
         ${row("Val balanced accuracy", t => `<span class="num ${t.ba === baBest ? "best" : ""}">${t.ba != null ? pct(t.ba) : "—"}</span>`)}
         ${row("Errors of 2,400", t => `<span class="num ${t.err === errBest ? "best" : ""}">${t.err != null ? (t.errApprox ? "≈" : "") + t.err : "—"}</span>`)}
         ${row("Macro AUC", t => `<span class="num">${t.auc != null ? t.auc.toFixed(4) : "—"}</span>`)}
@@ -989,7 +1075,7 @@ function renderField() {
       <h3>Validation accuracy across the field</h3>
       <p class="lede" style="margin-top:6px">Twenty teams report an official validation score; VisionTron reports cross-validation only (97.39%). The spread from first to last is 1.33 points, about 32 images out of 2,400. Several teams note that seed noise alone moves scores by 0.1–0.3 points.</p>
       <div class="chart-box" style="margin-top:12px">${chartSvg()}</div>
-      <p class="muted" style="font-size:.8rem">* ZARN Vision's 99.38% comes from a 10-model ensemble with an image cache, retrained on train + val; their 5-fold mean is 99.15%. Shown in amber because it is not comparable to single-model scores until the organizers confirm the rules.</p>
+      <p class="muted" style="font-size:.8rem">* ZARN Vision's 99.38% comes from a 10-model ensemble with an image cache, retrained on train + val; their 5-fold mean is 99.15%. The ensemble’s test results are shown for reference because the final submission required a single fine-tuned model.</p>
     </div>
     <div class="panel">
       <h3>Technique matrix</h3>
@@ -1096,13 +1182,13 @@ function route() {
   const h = (location.hash || "#overview").slice(1);
   let view = "overview";
   if (h.startsWith("team-") && byId[h.slice(5)]) { view = "teams"; S.current = h.slice(5); saveUi(); }
-  else if (["overview", "teams", "compare", "field", "rubric"].includes(h)) view = h;
+  else if (["overview", "test-results", "teams", "compare", "field", "rubric"].includes(h)) view = h;
   S.view = view;
   document.querySelectorAll(".view").forEach(v => v.hidden = v.id !== "view-" + view);
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.view === view ? "page" : "false"));
   renderView(view);
 }
-function renderView(v) { ({ overview: renderOverview, teams: renderTeams, compare: renderCompare, field: renderField, rubric: renderRubric })[v](); }
+function renderView(v) { ({ overview: renderOverview, "test-results": renderTestResults, teams: renderTeams, compare: renderCompare, field: renderField, rubric: renderRubric })[v](); }
 function renderAll() { renderView(S.view); }
 
 $("#judge-name").value = S.sheet.judge || "";
