@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>IC3 Judging Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a reading-room desk. Sticky top bar with view tabs; each view is a single column of
+   panels, with the team sheet split into evidence (left) and scoring (right) on wide screens. */
+:root {
+  --bg: #eef2f4;
+  --surface: #ffffff;
+  --surface-2: #f6f8f9;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d6dee4;
+  --accent: #0a7a73;
+  --accent-ink: #ffffff;
+  --accent-soft: #dff1ef;
+  --warn: #9a5b00;
+  --warn-soft: #fbefd9;
+  --danger: #b42318;
+  --danger-soft: #fde4e1;
+  --good: #2c7a4b;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1419; --surface: #141e25; --surface-2: #19252d; --ink: #e4ecf1; --muted: #93a5b2;
+    --line: #273641; --accent: #39c0b5; --accent-ink: #062320; --accent-soft: #123532;
+    --warn: #e6a640; --warn-soft: #3a2a10; --danger: #f2786c; --danger-soft: #3d1a17; --good: #5fc48d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1419; --surface: #141e25; --surface-2: #19252d; --ink: #e4ecf1; --muted: #93a5b2;
+  --line: #273641; --accent: #39c0b5; --accent-ink: #062320; --accent-soft: #123532;
+  --warn: #e6a640; --warn-soft: #3a2a10; --danger: #f2786c; --danger-soft: #3d1a17; --good: #5fc48d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h2 { font-size: 1.45rem; font-weight: 700; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+h4 { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+p { margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num, .mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding-block: 12px 8px; }
+.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.brand h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: .01em; }
+.brand .sub { font-size: .85rem; color: var(--muted); }
+.tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.judge-in { width: 150px; padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; cursor: pointer; user-select: none; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+.btn { border: 1px solid var(--line); background: var(--surface-2); padding: 5px 11px; border-radius: var(--radius); cursor: pointer; font-size: .85rem; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.save-state { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+.save-state[data-kind="ok"]::before { content: "● "; color: var(--good); }
+.save-state[data-kind="local"]::before { content: "● "; color: var(--warn); }
+.save-state[data-kind="busy"]::before { content: "● "; color: var(--muted); }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs a { padding: 8px 14px; text-decoration: none; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; font-size: .92rem; }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs a:hover { color: var(--ink); }
+
+main { padding-block: 22px 60px; }
+.view { display: grid; gap: 18px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; min-width: 0; }
+.panel > h3 + * { margin-top: 10px; }
+.stack { display: grid; gap: 12px; }
+.lede { max-width: 72ch; color: var(--muted); }
+
+/* stat strip */
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.stat { background: var(--surface); padding: 14px 16px; }
+.stat .v { font-family: var(--font-data); font-size: 1.45rem; font-weight: 500; }
+.stat .k { font-size: .8rem; color: var(--muted); }
+
+.callout { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 12px 14px; border-radius: 0 var(--radius) var(--radius) 0; }
+.callout.info { border-left-color: var(--accent); background: var(--accent-soft); }
+.callout ul { margin: 6px 0 0; padding-left: 18px; }
+.callout li + li { margin-top: 4px; }
+
+/* tables */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+thead th { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; white-space: nowrap; background: var(--surface); position: sticky; top: 0; }
+th.sortable { cursor: pointer; }
+th.sortable:hover { color: var(--ink); }
+th .arrow { font-size: .7rem; }
+td.r, th.r { text-align: right; }
+td.c, th.c { text-align: center; }
+tbody tr:hover { background: var(--surface-2); }
+.team-link { color: var(--ink); font-weight: 600; text-decoration: none; }
+.team-link:hover { color: var(--accent); text-decoration: underline; }
+.cell { display: inline-grid; place-items: center; min-width: 28px; height: 26px; border-radius: 4px; font-family: var(--font-data); font-size: .85rem; }
+.cell.s1 { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.cell.s2 { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+.cell.s3 { background: color-mix(in srgb, var(--accent) 36%, var(--surface)); }
+.cell.s4 { background: color-mix(in srgb, var(--accent) 58%, var(--surface)); }
+.cell.s5 { background: var(--accent); color: var(--accent-ink); }
+.cell.sugg { background: transparent; border: 1px dashed var(--line); color: var(--muted); font-style: italic; }
+.cell.empty { color: var(--muted); }
+.bar-mini { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; }
+.pill { display: inline-block; font-size: .72rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.warn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+.pill.danger { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+.pill.good { border-color: var(--good); color: var(--good); }
+.pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); align-items: center; }
+
+/* team view */
+.picker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.picker select { padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); min-width: 0; max-width: 100%; }
+.team-head { display: grid; gap: 6px; }
+.team-head .file { font-family: var(--font-data); font-size: .78rem; color: var(--muted); word-break: break-all; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface-2); }
+.tile .v { font-family: var(--font-data); font-size: 1.2rem; }
+.tile .k { font-size: .75rem; color: var(--muted); }
+.split { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .split { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; } .split > .sheet { position: sticky; top: 112px; max-height: calc(100vh - 128px); overflow-y: auto; } }
+.two { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li + li { margin-top: 5px; }
+.flag { display: flex; gap: 8px; padding: 9px 11px; border-radius: var(--radius); font-size: .9rem; }
+.flag.warn { background: var(--warn-soft); }
+.flag.danger { background: var(--danger-soft); }
+.flag.info { background: var(--accent-soft); }
+.flag b { white-space: nowrap; }
+
+/* scoring sheet */
+.sheet { display: grid; gap: 12px; }
+.crit { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 8px; background: var(--surface); }
+.crit-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px; }
+.crit-top .w { font-family: var(--font-data); font-size: .8rem; color: var(--muted); }
+.sugg-box { font-size: .85rem; color: var(--muted); background: var(--surface-2); border-radius: 4px; padding: 7px 9px; }
+.sugg-box b { color: var(--ink); font-family: var(--font-data); }
+.scores { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.scores button { width: 38px; height: 34px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; font-family: var(--font-data); font-size: .95rem; }
+.scores button:hover { border-color: var(--accent); }
+.scores button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.scores .pts { margin-left: auto; font-family: var(--font-data); font-size: .85rem; color: var(--muted); }
+.scores .clear { width: auto; padding: 0 8px; font-family: var(--font-body); font-size: .78rem; color: var(--muted); }
+textarea { width: 100%; min-height: 54px; resize: vertical; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); padding: 7px 9px; font-size: .88rem; }
+details.desc summary { cursor: pointer; font-size: .8rem; color: var(--accent); }
+details.desc ul { margin: 6px 0 0; padding-left: 18px; font-size: .84rem; color: var(--muted); }
+.total-bar { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; padding: 12px 14px; border-radius: var(--radius); background: var(--accent-soft); }
+.total-bar .big { font-family: var(--font-data); font-size: 1.6rem; font-weight: 500; }
+.coi { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.coi input { accent-color: var(--danger); width: 16px; height: 16px; }
+
+/* compare */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: .82rem; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cmp th[scope="row"] { font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: none; letter-spacing: 0; width: 170px; min-width: 140px; position: sticky; left: 0; background: var(--surface); }
+.cmp td { vertical-align: top; min-width: 220px; }
+.cmp td ul { margin: 0; padding-left: 16px; }
+.cmp tr.sec th { font-family: var(--font-display); font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); background: var(--surface-2); padding-top: 10px; }
+.best { font-weight: 600; color: var(--accent); }
+
+/* field */
+.chart-box { overflow-x: auto; }
+.chart-box svg { display: block; min-width: 560px; width: 100%; height: auto; }
+.chart-box text { fill: var(--ink); font-family: var(--font-body); font-size: 12px; }
+.chart-box .tick { fill: var(--muted); font-family: var(--font-data); font-size: 11px; }
+.chart-box .grid { stroke: var(--line); stroke-width: 1; }
+.chart-box .barr { fill: var(--accent); }
+.chart-box .barr.ens { fill: var(--warn); }
+.chart-box .val { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
+.mx td.c { font-size: 1rem; }
+.yes { color: var(--accent); font-weight: 700; }
+.no { color: var(--line); }
+.insights { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.insight { border-top: 2px solid var(--accent); padding-top: 10px; }
+.insight p { font-size: .9rem; color: var(--muted); margin-top: 4px; }
+
+/* rubric */
+.rub td { vertical-align: top; }
+.rub td:first-child { white-space: nowrap; font-weight: 600; }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: var(--radius); font-size: .85rem; z-index: 20; max-width: calc(100% - 32px); }
+.copy-area { width: 100%; min-height: 160px; font-family: var(--font-data); font-size: .75rem; }
+@media (max-width: 640px) {
+  .judge-in { width: 120px; }
+  .tools { margin-left: 0; }
+  .split > .sheet { position: static; max-height: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <div class="bar-top">
+      <div class="brand">
+        <h1>IC3 Judging Desk</h1>
+        <span class="sub">Hackathon 2026 · Track A · 21 submissions · scored to the six-criterion rubric</span>
+      </div>
+      <div class="tools">
+        <input id="judge-name" class="judge-in" placeholder="Your name (judge)" aria-label="Judge name">
+        <label class="toggle" title="Hide the draft scores to score blind first"><input type="checkbox" id="show-sugg" checked> Draft scores</label>
+        <button class="btn primary" id="export-btn" type="button">Export my scores</button>
+        <span class="save-state" id="save-state" data-kind="busy">Loading…</span>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Views">
+      <a href="#overview" data-view="overview">Overview</a>
+      <a href="#teams" data-view="teams">Team sheets</a>
+      <a href="#compare" data-view="compare">Compare</a>
+      <a href="#field" data-view="field">Field analysis</a>
+      <a href="#rubric" data-view="rubric">Rubric</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="view" id="view-overview"></section>
+  <section class="view" id="view-teams" hidden></section>
+  <section class="view" id="view-compare" hidden></section>
+  <section class="view" id="view-field" hidden></section>
+  <section class="view" id="view-rubric" hidden></section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------------- Rubric ---------------- */
+const CRIT = [
+  { k: "c1", name: "Clinical relevance and impact", short: "Clinical", w: 25,
+    look: "A clearly defined clinical or health problem; a credible case for benefit to patients, clinicians, or care delivery",
+    d5: "Addresses an important, well-documented clinical need; impact on outcomes, safety, or efficiency is clearly argued and plausible.",
+    d3: "The clinical problem is relevant, but the benefit or intended users are only loosely defined.",
+    d1: "No clear clinical problem, or the link between the solution and care is not explained." },
+  { k: "c2", name: "Technical approach and quality", short: "Technical", w: 25,
+    look: "Sound methods and appropriate data; working model or prototype; results evaluated with suitable metrics",
+    d5: "Methods are well chosen and justified; the prototype works; evaluation is rigorous and results are reported honestly.",
+    d3: "Reasonable approach with a partially working prototype; evaluation is limited or metrics are incomplete.",
+    d1: "Approach is unclear or inappropriate; no working output or evaluation." },
+  { k: "c3", name: "Innovation and creativity", short: "Innovation", w: 15,
+    look: "A novel idea, method, or application; goes beyond a routine or off-the-shelf solution",
+    d5: "A fresh idea or a creative combination of methods that offers a new way to approach the problem.",
+    d3: "Some original elements, but largely builds on familiar approaches.",
+    d1: "Replicates an existing solution with no meaningful new contribution." },
+  { k: "c4", name: "Responsible and trustworthy AI", short: "Responsible AI", w: 15,
+    look: "Attention to bias and fairness, data privacy, safety, transparency, and limitations",
+    d5: "Identifies and addresses risks such as bias, privacy, and safety; explains limitations and how outputs would be overseen by people.",
+    d3: "Acknowledges key risks but offers limited mitigation.",
+    d1: "Ethical, privacy, or safety considerations are not addressed." },
+  { k: "c5", name: "Feasibility and path to adoption", short: "Feasibility", w: 10,
+    look: "Realistic next steps, workflow fit, and the resources needed to move toward real-world use",
+    d5: "Clear, realistic plan for next steps, integration into clinical workflow, and needed data, partners, or validation.",
+    d3: "Next steps are named but lack detail or underestimate barriers.",
+    d1: "No discussion of how the work could be developed or used." },
+  { k: "c6", name: "Communication and presentation", short: "Communication", w: 10,
+    look: "Clear, well-organized submission and demo; the team can explain its choices and results",
+    d5: "Compelling, well-organized, and easy to follow for both clinical and technical audiences; questions answered with confidence.",
+    d3: "Understandable, but key points are buried or the demo is hard to follow.",
+    d1: "Disorganized or incomplete; the project's purpose is unclear." }
+];
+const SCALE = { 5: "Exceptional", 4: "Strong", 3: "Adequate", 2: "Limited", 1: "Insufficient" };
+
+/* ---------------- Submissions (from the 21 decks) ----------------
+   ba/auc/f1: validation-set numbers the team reports from the official evaluate.py.
+   errApprox: error count derived from balanced accuracy (2,400 balanced images) where the deck gives none.
+   sugg: draft 1-5 scores with a one-line reason each. */
+const TEAMS = [
+{ id: "zarn-vision", name: "ZARN Vision", file: "summary_ZARN_Vision.pptx", slides: 10,
+  title: "BiomedCLIP CT Organ Classification with Stable Fine-Tuning Strategy",
+  members: ["Zijian Xu", "Anabel Chang", "Renjie Liang", "Dr. Naveen Baskaran"],
+  ba: 0.9938, baNote: "official split with the ensemble; 99.33% from an official evaluate.py run; 99.15% mean over 5 folds", auc: 0.9999, f1: null, err: 20, errNote: "per 2,400 (fold average)", views: null,
+  approach: "LoRA warm-up, then full image-encoder fine-tuning; weights averaged over epochs 2–5; 10-member ensemble (5 × 224 px + 5 × 336 px) plus a label-free training-image cache.",
+  tech: { text: false, peft: true, soup: "Epoch averaging + 10-member ensemble", tta: false, cv: true, seeds: true, robust: false, errs: true, limits: true, clinical: true },
+  summary: "Starts from a teammate's single fine-tuned model (99.12% on one lucky seed) and shows it is unstable: across 5 folds × 5 seeds the same recipe ranges 97.1–99.2%. Builds a stable system with weight averaging, a two-resolution ensemble and a nearest-neighbour image cache, reaching 99.15% mean across 5 folds with fold spread cut from 2.1 to 0.6 points. The only deck with a dedicated clinical-relevance slide.",
+  method: ["Step 1: LoRA warm-up (41.2% → 98.1%); step 2: full fine-tuning (→ 99.1%, one run)", "Step 3: average weights of epochs 2–5; train 10 members at 224 px and 336 px", "Label-free cache pulls each image toward its 2 most similar training images (strength 0.3)", "Every choice decided on paired 5-fold × 5-seed comparisons; final members retrained on all 16,800 crops"],
+  results: ["5-fold CV mean 97.71% (single model) → 99.15% (final)", "Official split 99.38%, macro AUC 99.99%", "Errors per fold 55 → 20; pancreas ↔ kidney is 47 of 102 remaining errors", "Ablation table of 10 ideas with kept / dropped verdicts"],
+  strengths: ["Exposes seed variance others ignored (the 'seed lottery') and evaluates on 25 runs", "Only team to name clinical users and uses: organ tagging, segmentation QC, routing to organ-specific models, report pre-fill", "Names concrete steps toward clinical use: 3-D localization, multi-site validation, calibrated deferral to a radiologist"],
+  gaps: ["The inference system is a 10-model output ensemble plus a training-image lookup, which may conflict with the one-model rule", "Final members retrained on all 16,800 crops, which includes the 2,400 validation images", "Clinical slide was added at a mentor's request; it lists uses but cites no evidence or workflow data"],
+  flags: [{ lvl: "danger", t: "Rule check needed. Other teams describe the rules as one model, one forward pass, train folder only (Carlos_Funk: averaging model outputs is 'not allowed'). ZARN averages the cosines of 10 members, adds a training-image cache at inference, and retrains on train + val. Confirm with the organizers before ranking." }, { lvl: "info", t: "Team lists a faculty member (Dr. Naveen Baskaran). Check for conflicts of interest on the panel." }],
+  questions: ["How does a 10-member ensemble with an image cache satisfy the single-model, cosine-only rule?", "If members were retrained on all 16,800 crops, which number is a clean held-out estimate?", "What would calibrated deferral look like in a radiology worklist?"],
+  sugg: { c1: [4, "Only team with a clinical-relevance slide: names users, use cases and future validation, though without evidence."], c2: [4, "Most rigorous variance analysis in the field (5 folds × 5 seeds); held at 4 because of open rule-compliance questions and training on val."], c3: [4, "Mixed-resolution ensemble plus a label-free image cache is a creative combination; the parts are known methods."], c4: [3, "Mentions deferral to a radiologist and multi-site validation; no bias, privacy or safety analysis."], c5: [3, "Next steps are named (3-D localization, multi-site data, calibrated deferral) but without partners, resources or a timeline."], c6: [4, "Clear numbered storyline and an honest 'will it hold' slide; some dense slides."] } },
+
+{ id: "3-little-piggies", name: "3 Little Piggies", file: "summary_3_Little_Piggies.pptx", slides: 10,
+  title: "Fine-Tuning BiomedCLIP for CT Organ Classification",
+  members: ["William \"Max\" Kieffer", "Edward Kempa", "Serban Negoita"],
+  ba: 0.9904, baNote: "reproduced by the organizers' check script", auc: 0.9999, f1: 0.990, err: 23, views: [0.995, 0.994, 0.983],
+  approach: "Image encoder fine-tuned against the 40 official prompts (text frozen); two-seed weight soup; 7-view test-time augmentation.",
+  tech: { text: false, peft: false, soup: "2 seeds", tta: true, cv: true, seeds: true, robust: true, errs: true, limits: true, clinical: false },
+  summary: "A disciplined, pre-registered workflow: every change was judged on a held-out fold of the training set and kept only if it cleared a +0.3-point bar set in advance. Adds two integrity checks (held-out fold vs val; a shuffled-label run lands at chance) and the field's most important scientific finding: crop artifacts alone (upscaling, intensity) predict the organ at 0.917, so models may be learning acquisition artifacts rather than anatomy.",
+  method: ["Cross-entropy over 8 cosine similarities averaged over all 5 templates; AdamW 1e-5, 12 epochs", "5-fold CV on train with neighbouring slices kept together; +0.3-point keep rule fixed before running", "Kept: 12 epochs (+0.33), TTA (+0.30). Dropped 8 ideas incl. text tuning (−0.17), stronger aug (−1.63)"],
+  results: ["Balanced accuracy 0.41 → 0.99; every view gains 56–59 points", "All 5 templates 0.991–0.992; every organ ≥ 96.7% recall", "Held-out fold 0.982 vs val 0.990 (consistent ~1-pt gap); shuffled labels 0.128 (chance 0.125)", "Boosted trees on 41 pixel statistics alone reach 0.917; 23 val errors, 14 a 'hard core' missed by nearly every model"],
+  strengths: ["Pre-registered decision rule and a leakage control: uncommon rigor", "Shortcut-learning analysis is clinically important: it questions whether the 0.99 reflects anatomy", "Excellent speaker notes; each slide makes one point"],
+  gaps: ["No clinical framing of who would use an organ classifier or why", "Artifact finding is reported, not mitigated (no de-biased evaluation or re-cropping)", "No next steps toward deployment"],
+  flags: [{ lvl: "info", t: "The artifact-shortcut finding likely applies to every team's model. Worth raising with the panel when interpreting all scores." }],
+  questions: ["If upscaling predicts the organ at 0.80, how would you test whether your model uses anatomy?", "What would you change about the data pipeline before clinical use?"],
+  sugg: { c1: [2, "Clinical use is not discussed; the artifact finding touches on clinical validity but is not framed for care."], c2: [5, "Pre-registered selection on held-out folds, leakage control, honest reporting: rigorous evaluation throughout."], c3: [4, "The pixel-artifact probe is an original diagnostic contribution; the training recipe itself is standard."], c4: [4, "Detects shortcut learning and checks for leakage, a real trustworthiness contribution; no human-oversight or privacy discussion."], c5: [2, "No path to adoption, but the analysis says what must change in the data."], c6: [5, "Tightly organized, one claim per slide, with thorough speaker notes."] } },
+
+{ id: "iarg", name: "IARG", file: "summary_IARG.pdf", slides: 10,
+  title: "Fine-Tuning BiomedCLIP for CT Organ Classification (AEA: Align, Encoder fine-tuning, Average)",
+  members: ["Kweku Yamoah", "Kevin Scroggins"],
+  ba: 0.9900, baNote: "official evaluate.py; 99.06% mean over templates", auc: 0.9998, f1: 0.990, err: 24, errApprox: true, errNote: "21 images wrong under all 5 templates", views: [0.998, 0.990, 0.984],
+  approach: "Three stages: Align (train text projection on cached frozen image features), encoder fine-tuning with EMA, uniform 3-seed weight average.",
+  tech: { text: true, peft: false, soup: "3 seeds (uniform)", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: true, clinical: false },
+  summary: "The most analytically grounded deck. Diagnoses why zero-shot fails: image embeddings sit in a narrow cone and the 'heart' prompt is closest to its centre, so 881 of 2,400 images are called heart. Designs a three-stage method from that diagnosis, measures each stage, and tests on 8 unseen templates and organ synonyms. 14 cited references.",
+  method: ["Probe shows frozen features already separate organs (93.8%), so first align the text side only (val 93.2%)", "Then fine-tune the image encoder from the aligned start (LP-FT analogue); logit scale 30, EMA 0.995", "Uniform average of 3 seeds to avoid picking a lucky seed on val", "11 automated checks incl. bit-identical preprocessing and zero-shot reproduction"],
+  results: ["41.2% → 99.0%; sagittal 39.4% → 98.4%", "Template spread 6.8 → 0.04 points; 99.0% on 8 unseen templates, 98.9% with synonyms ('renal parenchyma')", "Mean image–image cosine 0.67 → 0.07; ablations show intensity augmentation hurts by 1.5–2.0 points", "Per-organ × view recall heatmap and angle-based error visualisation"],
+  strengths: ["Method follows from a measured diagnosis (cone effect), not trial and error", "Generalization test on prompts never seen in training", "Very clear figures; references and compliance checklist"],
+  gaps: ["No clinical framing or intended users", "Val used for selection (acknowledged) and no CV on train", "Limitations sit inside the recall slide rather than stated up front"],
+  flags: [],
+  questions: ["Would the Align stage help on a new organ or modality with no fine-tuning data?", "What does the synonym test imply for real radiology report language?"],
+  sugg: { c1: [2, "Clinical relevance not argued; the synonym test hints at report-language use but isn't framed that way."], c2: [5, "Diagnosis-driven design, staged measurements, ablations with seeds, automated checks: exemplary."], c3: [4, "Align-then-fine-tune from a geometric diagnosis and unseen-prompt testing go beyond the routine recipe."], c4: [3, "Transparent about val selection and errors, checks generalization; no bias, safety or oversight discussion."], c5: [2, "Concrete technical next steps (up-weight hard cases) but no route to use."], c6: [5, "Best visual explanation in the field; easy to follow for technical readers."] } },
+
+{ id: "emperors", name: "Emperors", file: "summary_Emperors.pptx", slides: 14,
+  title: "Classification of Organ in a CT Slice with BiomedCLIP",
+  members: ["Harishwar Reddy Kasireddy", "Jamie L. Fermin", "Vishal Balaji Sivaraman", "Junfu Cheng"],
+  ba: 0.9925, baNote: "95% CI over pseudo-patients [0.9870, 0.9971]", auc: 0.9998, f1: 0.9925, err: 18, errApprox: true, views: [0.9950, 0.9962, 0.9863],
+  approach: "Image-only fine-tuning (text frozen), 5 seeds weight-averaged; 32 alternatives tested against a pre-written rule with bootstrap confidence intervals.",
+  tech: { text: false, peft: false, soup: "5 seeds", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  summary: "The most statistically careful submission. Compares LoRA, full and image-only fine-tuning on a fair held-out split, then tests 32 alternatives (SAM, Lipsum-FT, surgical fine-tuning, greedy soup, task arithmetic, Model Stock) using confidence intervals over pseudo-patients and a decision rule written before results. None beat the simple image-only recipe, and they say so.",
+  method: ["Six-step project story; each step answers the previous one's question", "Own 12,000 / 2,400 split of train for method comparison; organizers' val used once as a test", "Bootstrap CIs over ~8-slice pseudo-patients; P(better) reported for every comparison", "Final: image encoder + projection, AdamW 2e-5, 11 epochs, 5-seed average"],
+  results: ["0.9925 on val, CI [0.9870, 0.9971]; +0.29 pp over earlier model, CI [+0.04, +0.72]", "Sagittal 0.9863 is the weakest view", "32 alternatives, 8 from recent papers: none clearly better on new patients", "Transparency notes on optimistic numbers and an unplanned look at two SAM runs"],
+  strengths: ["Confidence intervals and pre-registered decision rules throughout", "Unusually candid: flags every place val may be optimistic", "Glossary slide makes the deck accessible to non-specialists"],
+  gaps: ["No clinical framing or adoption path", "Little error analysis of what the model gets wrong", "Several key results are charts with leftover template notes; summary appears near the end"],
+  flags: [],
+  questions: ["What does the CI width tell a clinician about deploying this on a new hospital's scans?", "Why did none of the eight recent-paper methods help here?"],
+  sugg: { c1: [2, "Task restated, no clinical benefit or users discussed."], c2: [5, "Fair comparisons, CIs, pre-written rules, honest optimism notes: rigorous and honest."], c3: [3, "Broad survey of recent methods; conclusion is that the familiar recipe wins."], c4: [4, "Transparency and uncertainty quantification are exemplary; no bias, privacy or oversight discussion."], c5: [2, "Clear deliverable and reproducible checkpoint; no next steps toward use."], c6: [4, "Well structured with a glossary; dense, and the summary sits at the end."] } },
+
+{ id: "carlos-funk", name: "Carlos_Funk", file: "summary_Carlos_Funk.pptx", slides: 10,
+  title: "Fine-tuning BiomedCLIP to classify CT organs",
+  members: ["David Portilla Gutierrez", "Noah Hassan", "Jeffrey Cui"],
+  ba: 0.9958, baNote: "official evaluate.py; highest validation score in the field", auc: 0.9999, f1: 0.9958, err: 10, views: null,
+  approach: "Full fine-tuning of both towers with a CosFace margin and EMA; 112 checkpoints; greedy weight soup of 8.",
+  tech: { text: true, peft: false, soup: "Greedy, 8 of 67", tta: false, cv: false, seeds: true, robust: false, errs: true, limits: true, clinical: false },
+  summary: "Highest validation accuracy (99.58%, 10 errors). Trained 67 checkpoints the first night and 45 more, then built a greedy weight soup. Candid about the catch: soup ingredients were picked on val, so they ran a split-half check (99.57% on the picking half vs 99.25% on the unseen half) and estimate 99.2–99.3% on the hidden test.",
+  method: ["Both towers trained end to end; logit scale frozen at 85.23; each batch draws one official template", "CosFace margin m = 0.1 in training only; full fine-tuning beat LoRA r16 (99.17 vs 98.92)", "Edge-filled rotation so no black corners; zoom-out only so the organ stays in frame; no flips", "Greedy soup: add a checkpoint only if val accuracy rises (or ties with lower log-loss)"],
+  results: ["0.411 → 0.9958; macro AUC 0.9999", "10 of 2,400 wrong: 7 right-lung, 2 pancreas, 1 bladder", "Border-safe augmentation was the biggest single gain", "Expected hidden-test 99.2–99.3% from split-half analysis"],
+  strengths: ["Best raw score with a careful estimate of how optimistic it is", "Augmentation reasoning grounded in what the crops look like", "Clear comparison of four soup acceptance rules"],
+  gaps: ["Soup chosen on val; no CV on train", "No clinical framing, limitations beyond val optimism, or adoption path", "Two result slides are charts with little text"],
+  flags: [],
+  questions: ["Given the split-half drop, would you still choose the greedy soup over a uniform average?", "What makes the 7 right-lung crops fail, and is that a data problem?"],
+  sugg: { c1: [2, "No clinical context beyond the task statement."], c2: [5, "Top accuracy with sound ablations and an honest estimate of selection optimism."], c3: [3, "CosFace margin and border-safe augmentation are thoughtful tweaks on a standard recipe."], c4: [3, "Candid about val optimism with a split-half check; no other risks discussed."], c5: [2, "Single offline checkpoint; no next steps."], c6: [4, "Clean, numbers-first slides; a couple of chart-only slides."] } },
+
+{ id: "moe", name: "MoE (Mixture of Experts)", file: "summary_MoE.pptx", slides: 10,
+  title: "Fine-Tuning BiomedCLIP to Recognize Organs in CT Images",
+  members: ["Anay Sinhal", "Omer Kahveci", "Rushi Patel"],
+  ba: 0.9900, baNote: "official evaluate.py; one run of the final recipe", auc: 0.9999, f1: 0.990, err: 24, views: [0.993, 0.995, 0.983],
+  approach: "Frozen text encoder; last 8 of 12 image blocks trained; safety margin plus softer training temperature (scale 50).",
+  tech: { text: false, peft: false, soup: "", tta: false, cv: false, seeds: true, robust: false, errs: true, limits: true, clinical: false },
+  summary: "Roughly 300 training runs, each idea tested on 8–16 seeds with paired comparisons against a plain run on the same seed. Finds two small tweaks (a margin and a softer temperature) beat bigger changes such as adapters, CoOp, distillation, SAM and LoRA. Written in plain language that a clinician could follow.",
+  method: ["Freeze text encoder; train last 8 image layers on all 5 wordings; 2 epochs, ~1.5 min per run", "Margin: true organ must win by a clear gap; temperature 50 in training (100 at test)", "Kept an idea only if it helped consistently across paired seeds"],
+  results: ["99.0% balanced accuracy (2,376 / 2,400); sagittal 98.3% weakest", "Final recipe +13 images vs plain, better in 8 of 8 runs", "LoRA −8 images, SAM −1; adapters, CoOp, distillation small gains not kept", "24 errors; 14 sagittal; pancreas → kidney most common"],
+  strengths: ["Paired-seed testing at scale avoids chasing lucky runs", "Most accessible explanation for a clinical audience", "Error examples are explained in anatomical terms"],
+  gaps: ["Submitted a single run rather than an averaged model", "No clinical use case or adoption path", "Limitation slide is brief (~16 patients in val)"],
+  flags: [],
+  questions: ["Why submit one run instead of averaging seeds, given your own seed variance?", "Who is the intended user of an organ classifier?"],
+  sugg: { c1: [2, "Explains the task for clinicians but not why it matters for care."], c2: [4, "Paired multi-seed testing over ~300 runs is solid; submission is a single run."], c3: [3, "Margin plus softened temperature is a neat, well-tested tweak on a familiar recipe."], c4: [3, "Notes the small patient count and residual errors; no broader risk discussion."], c5: [2, "Code, logs and model packaged; no next steps toward use."], c6: [5, "Easy to follow for both clinical and technical audiences, as the descriptor asks."] } },
+
+{ id: "outliers", name: "Outliers", file: "summary_Outliers.pptx", slides: 10,
+  title: "Fine-Tuning BiomedCLIP for CT Organ Recognition",
+  members: ["Divyansh Agarwal", "Prathmesh Santosh Choudhari", "Shaun Noel Jose"],
+  ba: 0.9933, baNote: "official evaluate.py", auc: 0.9997, f1: 0.993, err: 16, views: [0.996, 0.995, 0.989],
+  approach: "LoRA r16 on the image encoder (1.28 M trainable parameters) with an adaptive loss that up-weights the weakest organ × view groups; 3-seed weight soup.",
+  tech: { text: false, peft: true, soup: "3 seeds", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: true, clinical: false },
+  summary: "Shows LoRA matches full fine-tuning with 1.5% of the parameters. Adds a loss that up-weights the worst-performing organ × view groups, a perturbation robustness study, and an honest choice of the soup over a luckier single seed, confirmed on fresh pre-registered seeds.",
+  method: ["Compared 7 candidates from QKV-only LoRA to full encoder; same data and selection rule", "LoRA r16 on qkv + proj + head; adaptive group-weighted loss; 10 epochs", "Three seeds' merged encoders averaged into one model"],
+  results: ["0.412 → 0.993; errors 1,411 → 16", "Soup beats single seed under every synthetic change except contrast", "Noise training fixes noise and brightness but costs 0.5 clean points", "Pancreas (0.79) and bladder (0.88) drop most under the strongest combined change"],
+  strengths: ["Robustness to image perturbations measured, not assumed", "Group-weighted loss targets the weakest subgroups, a fairness-style idea", "Parameter-efficient result is practical for deployment"],
+  gaps: ["No clinical framing or deployment plan", "Best epoch chosen on val (acknowledged)", "Robustness drops for pancreas and bladder not followed up"],
+  flags: [],
+  questions: ["What would the 0.79 pancreas recall under perturbation mean for a real scanner?", "Does the group-weighted loss change which organs fail?"],
+  sugg: { c1: [2, "No clinical case made."], c2: [4, "Clean candidate comparison, seed analysis and robustness tests; selection used val."], c3: [3, "Group-adaptive loss and LoRA soup are sensible extensions of known methods."], c4: [4, "Subgroup-weighted loss, perturbation robustness and honest selection; no privacy or oversight discussion."], c5: [2, "Parameter efficiency noted; no adoption steps."], c6: [4, "Clear tables and takeaways on every slide."] } },
+
+{ id: "tbd-team-g", name: "TBD_Team_G (HiPerVision)", file: "summary_TBD_Team_G.pptx", slides: 10,
+  title: "Teaching BiomedCLIP to read CT organs",
+  members: ["Shrimayee", "Nandhan", "Siddharth"],
+  ba: 0.9825, baNote: "official evaluate.py", auc: 0.9993, f1: 0.9825, err: 42, views: [0.9858, 0.9812, 0.9807],
+  approach: "Both towers fine-tuned; 15 per-view, per-fold specialist teachers distilled into one student model; worst-template loss and CosFace margin.",
+  tech: { text: true, peft: false, soup: "", tta: false, cv: true, seeds: false, robust: true, errs: true, limits: false, clinical: false },
+  summary: "The most original method in the field: a generalist model, then 15 specialist teachers (3 views × 5 folds) that label only out-of-fold images, then a single student trained on true labels plus its view's teacher. Adapts Hinton's specialist distillation so the submission stays one ordinary BiomedCLIP. Lowest validation score among teams with official results (98.25%), with a modest +0.26-point gain from distillation.",
+  method: ["Loss over all 40 prompts every step: 0.5 · mean + 0.5 · worst template", "CosFace margin 0.25 (removing it costs 0.34 pts); template-consistency term", "Layer-wise LR + EMA; CT-safe augmentation, no flips; sagittal sampled 1.5×"],
+  results: ["Generalist 98.00% → student 98.26%; every view improves", "Worst prompt 98.17%, best 98.33%: 0.16-point spread", "42 val errors; bladder → pancreas and pancreas → kidney most frequent", "Weight soup was 0.10 pts higher but under their 0.20 gate, so not used"],
+  strengths: ["Genuinely novel training design that still meets the one-model rule", "Explicit robustness to the unknown test template", "Disciplined gate against chasing noise"],
+  gaps: ["Accuracy trails the field by about 1 point", "No limitations or clinical discussion", "Members listed by first name only"],
+  flags: [],
+  questions: ["Why did specialists help coronal and sagittal but not axial?", "Would the teacher–student design transfer to a new view or scanner?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [4, "Well-justified design and ablations with noise awareness; lower accuracy than peers."], c3: [5, "Per-view specialist distillation into one image–text model is a fresh, creative combination."], c4: [2, "Robustness to prompts addressed; no limitations or risk discussion."], c5: [1, "No discussion of next steps or use."], c6: [4, "Clear architecture slide and thorough speaker notes."] } },
+
+{ id: "git-happens", name: "Git_Happens", file: "summary_Git_Happens.pptx", slides: 10,
+  title: "Fine-Tuning BiomedCLIP for CT Organ Classification",
+  members: ["Dinesh Reddy Ande", "Ashmit Sharma"],
+  ba: 0.9938, baNote: "official evaluate.py, offline on the final folder", auc: 0.9992, f1: 0.9938, err: 15, views: [0.9963, 0.9950, 0.9900],
+  approach: "Image encoder at 336 px input (text frozen); 5-seed uniform weight average; choices made by written rules on grouped cross-validation.",
+  tech: { text: false, peft: false, soup: "5 seeds", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  summary: "Recognizes that validation is saturated and builds a 3-fold cross-validation on groups of visually similar training images as a harder stress test (96–97% vs 99%). Screens 8 changes, combines 4, then confirms with 3 seeds per fold under rules written in advance. Documents an override of its own rule (skipping TTA) with reasons.",
+  method: ["Screen → combine → confirm; each run compared with baseline on the same seed and fold", "AdamW 3e-5, batch 32, 16-epoch cosine; mild scale and shift augmentation", "5 identical runs, different seeds, averaged into one checkpoint"],
+  results: ["99.38% val, 15 errors; same score under all five templates", "Seed averaging is the reliable gain (+0.27 pts on CV)", "336 px helped kidney; rotation, text training, 448 px did not add"],
+  strengths: ["Harder internal benchmark when val could not separate recipes", "Written decision rules and a documented override", "Training code, logs and rules included"],
+  gaps: ["No clinical framing or error analysis by anatomy", "No discussion of risks beyond val saturation", "Several results are charts only"],
+  flags: [],
+  questions: ["What does the 3-point gap between CV and val say about the hidden test?", "Why does 336 px help kidney specifically?"],
+  sugg: { c1: [2, "No clinical context."], c2: [4, "Grouped CV, seed-matched comparisons and pre-written rules; limited error analysis."], c3: [3, "Higher input resolution and grouped CV are thoughtful but familiar."], c4: [3, "Transparent about saturation and decisions; no other risks addressed."], c5: [2, "Self-contained offline package with code and logs."], c6: [4, "Logical flow from problem to rules to results."] } },
+
+{ id: "tbd-team-c", name: "TBD_Team_C", file: "summary_TBD_Team_C.pptx", slides: 10,
+  title: "Teaching BiomedCLIP to Read CT Organ Crops",
+  members: ["Gauri Hanumant Kulkarni", "Harika Mekala", "Ashrita Yanala"],
+  ba: 0.9888, baNote: "official evaluate.py; last epoch only", auc: 0.9998, f1: 0.9887, err: 27, views: [0.993, 0.990, 0.984],
+  approach: "Image encoder fully fine-tuned, text encoder gently tuned (1e-6); 21 runs weight-averaged; last epoch only, never chosen on val.",
+  tech: { text: true, peft: false, soup: "21 runs", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: false, clinical: false },
+  summary: "Measures noise first (±0.1% across seeds) and only trusts gains above it. Averages 21 runs into one model, never selects an epoch on validation, and replicates the entire experiment set from scratch in a second folder (scores match within ±0.002). Error analysis shows most mistakes are crops where a neighbouring organ fills the frame.",
+  method: ["Train on 100 × cosine, the same score evaluate.py uses; loss averaged over all 5 phrasings", "No flips (a flipped liver lands on the spleen side)", "Soup decisions written before scoring; every 'win' re-tested on more seeds"],
+  results: ["0.4121 → 0.9888; macro AUC 0.9998", "All 5 templates 98.3–99.4% (zero-shot 36–46%)", "Train 99.14% vs val 98.88%: 0.26% gap", "27 errors; pancreas → kidney and right lung → liver are over half"],
+  strengths: ["Full replication of results is rare and valuable", "No epoch chosen on val, so the number is less optimistic", "Anatomically reasoned error analysis"],
+  gaps: ["Lower accuracy than peers", "No limitations or clinical discussion", "21-model soup offered little over smaller soups"],
+  flags: [],
+  questions: ["If errors come from crops showing two organs, how should labels be defined for clinical use?"],
+  sugg: { c1: [2, "No clinical framing; error analysis touches anatomy."], c2: [4, "Noise-aware testing, replication, no val epoch selection; accuracy a little lower."], c3: [3, "Large soup and replication are diligent rather than novel."], c4: [3, "Reproducibility and honest selection; no explicit limitations or risks."], c5: [1, "No discussion of development or use."], c6: [4, "Clear headline titles that state each finding."] } },
+
+{ id: "kong-skull-island", name: "Kong: Skull Island", file: "summary_Kong_Skull_Island.pptx", slides: 8,
+  title: "Improving Organ zero-shot classification generalizability",
+  members: ["Xuan Nhat Hoang", "Tran Mai Anh Truong"],
+  ba: 0.9933, baNote: "organizer's evaluation command", auc: 1.0, f1: 0.9933, err: 16, errApprox: true, views: null,
+  approach: "Two stages: projector-only training (LP-FT), then full fine-tuning of both encoders with sharpness-aware minimization (SAM); 5-fold grouped CV.",
+  tech: { text: true, peft: false, soup: "", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  summary: "Focuses on generalization: notices a train–val distribution shift (likely a patient split), so treats val as a held-out test and builds 5-fold CV with correlated slices grouped. Each improvement is shown on both CV and val, adding up from 0.9774 to 0.9923 CV. Retains logs, code and checkpoints for every run.",
+  method: ["Stage 1 (2 epochs): train projectors only; stage 2 (15 epochs): full fine-tuning with SAM", "Mild augmentation; no TTA", "Folds keep correlated image groups together"],
+  results: ["Ladder: baseline 0.9774 → tuned 0.9862 → +SAM 0.9884 → +LP-FT 0.9894 → +aug/longer 0.9923 (CV)", "Final val 0.9933; lung (0.973) and pancreas (0.977) weakest"],
+  strengths: ["Generalization-first framing with cited methods (LP-FT, SAM)", "Reproducibility and fairness statement", "Shows why CV was needed to see small gains"],
+  gaps: ["Short deck; several slides carry talking points rather than finished content", "No clinical framing or adoption path", "Little error analysis"],
+  flags: [{ lvl: "info", t: "Several slides still show template notes and talking-point text." }],
+  questions: ["What evidence suggests the val set comes from different patients?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [4, "Grouped CV and a clear improvement ladder; limited error analysis."], c3: [3, "LP-FT plus SAM is a sensible pairing from the literature."], c4: [3, "Distribution shift, reproducibility and fairness of rules addressed; no clinical risks."], c5: [1, "No next steps."], c6: [3, "Understandable but short and partly unfinished."] } },
+
+{ id: "falcons", name: "Falcons", file: "summary_Falcons.pdf", slides: 10,
+  title: "Fine-tuning BiomedCLIP for CT Organ Classification",
+  members: ["Atul Arun", "Vivek Chenganassery"],
+  ba: 0.9917, baNote: "official evaluate.py; soup members chosen on val", auc: 0.9992, f1: 0.9917, err: 20, views: [0.9948, 0.9925, 0.9877],
+  approach: "Both encoders fine-tuned (text at 2e-6) with label smoothing over all 5 templates; greedy soup of 3 seeds.",
+  tech: { text: true, peft: false, soup: "Greedy, 3 seeds", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: true, clinical: false },
+  summary: "A clean, well-documented standard recipe with a stable result (4 seeds within ±0.0003). Shows per-organ gains, ablations on flips and template training, a minimal-overfitting analysis, and a dedicated limitations slide.",
+  method: ["Both encoders trained end to end; logits = scaled cosine; label smoothing 0.1", "Anatomy-safe augmentation, no flips (liver vs spleen)", "4 runs, best epoch each; greedy soup of 3"],
+  results: ["0.396 → 0.992; spleen 5% → 100%", "Train 0.9986 vs val 0.9917; seed std ±0.0003", "Training on all 5 templates gives consistency, not accuracy", "20 errors: lung 8, pancreas 8, all lung misses right-sided"],
+  strengths: ["Dedicated error-analysis and limitations slide", "Very stable across seeds", "Clean, readable design"],
+  gaps: ["Val used for epoch and soup selection", "No clinical framing or next steps", "Few new ideas beyond the standard recipe"],
+  flags: [],
+  questions: ["What would you change to address right-lung errors without tuning to val?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [4, "Sound, stable, well-ablated; selection on val."], c3: [2, "Standard recipe executed well; little new."], c4: [3, "Clear limitations (val optimism, unknown patient split); no wider risks."], c5: [1, "No next steps."], c6: [4, "Clean and well organized."] } },
+
+{ id: "hackit", name: "HackIt", file: "summary_HackIt.pptx", slides: 10,
+  title: "Fine-tuning BiomedCLIP for CT Organ Classification",
+  members: ["Mingkai Chen", "Zhiyu Wang", "Jherome Santos", "Krisztina Zsigmond"],
+  ba: 0.9946, baNote: "official evaluate.py", auc: 0.9999, f1: 0.995, err: 13, views: null,
+  approach: "Frozen text encoder; full image encoder with label-smoothed CE and a small cosine margin; uniform soup of 5 fine-tunes; no augmentation.",
+  tech: { text: false, peft: false, soup: "5 runs", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: false, clinical: false },
+  summary: "Second-highest validation score (99.46%, 13 errors). A five-ingredient soup beats every member. Error review explains failures in imaging terms: lung crops that mostly show liver or heart, and contrast-filled bladder that looks like bone.",
+  method: ["All 12 ViT blocks + projection; LR 2e-5 / 1e-4; margin 0.02–0.03", "No augmentation (crops are standardized)", "Uniform soup; blending check shows soup sits at the optimum"],
+  results: ["41.2% → 99.5%; macro F1 0.386 → 0.995", "14–16 errors whichever template is used", "Hard mining moved errors between pancreas and kidney; TTA hurt"],
+  strengths: ["Strong result from a simple, well-argued recipe", "Imaging-aware error explanations"],
+  gaps: ["Model selection on val; no CV", "No limitations, clinical framing or next steps", "Several result slides are image-only"],
+  flags: [],
+  questions: ["How much of the 99.5% depends on selecting soup ingredients on val?"],
+  sugg: { c1: [2, "No clinical case; error review hints at imaging relevance."], c2: [4, "Strong, simple and reproducible; selection relied on val."], c3: [3, "Margin plus soup is a light variation on common practice."], c4: [2, "Error analysis only; risks and limitations not discussed."], c5: [1, "No next steps."], c6: [3, "Clear headlines; key evidence sits in images with little text."] } },
+
+{ id: "cmil-rockstars", name: "CMIL_RockStars", file: "summary_CMIL_RockStars.pptx", slides: 10,
+  title: "From 41% to 99%: Teaching BiomedCLIP to Recognise Organs in CT",
+  members: ["Ishaq Ansari", "Fatemeh Afsari", "Harrison Chojnowski", "Kirill Luka"],
+  ba: 0.9908, baNote: "official score", auc: 0.9999, f1: 0.9908, err: 22, views: null,
+  approach: "Image encoder fully fine-tuned plus top 4 text layers; extra paraphrase and view-aware prompts; EMA, 3-seed soup and zoom TTA.",
+  tech: { text: true, peft: false, soup: "3 seeds", tta: true, cv: false, seeds: true, robust: true, errs: true, limits: false, clinical: false },
+  summary: "A visually polished deck that trains with 'the test's own rule'. Adds paraphrased and view-aware prompts, and shows a before/after t-SNE where organs separate into tight clusters. Error gallery shows five of the 22 misses.",
+  method: ["Cosine × 100, softmax over 8 organs, CE on all 5 templates plus paraphrases", "No flips; mild zoom, rotation, contrast", "EMA, 3 seeds averaged, zoom TTA: 98.6 → 99.1%"],
+  results: ["99.08%, macro AUC 0.9999", "All 5 templates 99.0–99.1%", "Per-organ recall 97–100%; bladder lowest"],
+  strengths: ["Strong visual storytelling (t-SNE, error gallery)", "View-aware prompts are a nice touch"],
+  gaps: ["Thin on evaluation detail: no ablation numbers in text, no CV", "No limitations, clinical framing or next steps"],
+  flags: [{ lvl: "warn", t: "PowerPoint could not open this file when rendering slides here; text was read directly from the file. Check that it opens on your machine." }],
+  questions: ["Which of the three 'small habits' contributed most, and how do you know?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [4, "Working, robust model; ablation evidence is mostly visual and thin."], c3: [3, "View-aware prompts and paraphrases add some originality."], c4: [2, "No discussion of limitations or risk."], c5: [1, "No next steps."], c6: [4, "Polished and easy to follow; light on detail."] } },
+
+{ id: "eyegem", name: "EyeGEM", file: "summary_EyeGEM.pptx", slides: 10,
+  title: "Improving CT Organ Classification with Fine-Tuned BiomedCLIP",
+  members: ["David Weisglass", "Ilya Sobolev", "Sriya Boddapati", "Shruti Sreekanth"],
+  ba: 0.9900, baNote: "official evaluate.py; final-epoch EMA, no val epoch selection", auc: 0.9999, f1: 0.990, err: 24, errApprox: true, views: null,
+  approach: "Both encoders jointly fine-tuned with label smoothing and EMA; final-epoch weights; 3-crop test-time augmentation.",
+  tech: { text: true, peft: false, soup: "", tta: true, cv: false, seeds: false, robust: true, errs: true, limits: false, clinical: false },
+  summary: "A standard joint fine-tune that avoids val-based epoch selection. Adds an 8-condition perturbation stress test (98.50% mean; worst case 95.92% under pixel noise) and shows all 2,400 images get the same class under every template.",
+  method: ["CE on image–text similarity for all 5 templates; 10 epochs, AdamW, cosine", "Label smoothing 0.1; EMA; final-epoch weights", "TTA: full, 90% and 80% centre crops averaged"],
+  results: ["0.9900 balanced accuracy; macro AUC 0.9999", "Perfect recall on femur, heart, liver, spleen; lung 96.67% lowest", "Stress test: 98.50% mean, 95.92% with Gaussian noise", "2,400 / 2,400 consistent across templates"],
+  strengths: ["Robustness testing under realistic perturbations", "No validation-based selection"],
+  gaps: ["Single run, no ablations or seed analysis", "No limitations, clinical framing or next steps", "Blank final slide"],
+  flags: [],
+  questions: ["What does a 4-point drop under pixel noise imply for low-dose CT?"],
+  sugg: { c1: [2, "No clinical framing; noise test is relevant to low-dose imaging but not discussed."], c2: [4, "Working model, clean protocol, robustness test; no ablations or seeds."], c3: [2, "Standard recipe."], c4: [3, "Robustness to perturbations and template consistency checked; limitations not stated."], c5: [1, "No next steps."], c6: [3, "Clean slides; ends abruptly with a blank slide."] } },
+
+{ id: "tbd-team-a", name: "TBD_Team_A", file: "summary_TBD_Team_A.pptx", slides: 8,
+  title: "Adapting BiomedCLIP for CT Organ Classification",
+  members: ["Ava Aguilar", "Aaron Ghosh", "Aditya Chhabria", "Lilly Liu"],
+  ba: 0.9929, baNote: "official evaluate.py", auc: 0.9997, f1: 0.9929, err: 17, views: [0.995, 0.994, 0.990],
+  approach: "Both encoders fine-tuned; hard organs oversampled; training-only side and view prompts ('a sagittal CT image of the right lung'); 3-model soup; 4-view TTA.",
+  tech: { text: true, peft: false, soup: "3 models", tta: true, cv: false, seeds: true, robust: false, errs: true, limits: false, clinical: false },
+  summary: "Error analysis drives the method: every lung and kidney error was on the right side, so they oversampled right-sided organs and added left/right and view prompts. Notes errors come in near-identical pairs of neighbouring slices from about 8 cases, and that every model misses the same crops.",
+  method: ["Random template per image; right lung and right kidney 2×, bladder and pancreas 1.5×", "Training-only prompts naming side and view", "Soup of 3 models; TTA over 4 views"],
+  results: ["41.3% → 99.29%; spleen +91 pts", "~30 variants tested, differences under ±0.1% treated as noise", "17 errors from about 8 distinct cases, mostly right-lung base"],
+  strengths: ["Anatomy-informed fix derived from error analysis", "Noise threshold applied to variant testing"],
+  gaps: ["Slide titled 'What's Next' contains error analysis, not next steps", "No clinical framing or limitations", "Template notes left in"],
+  flags: [],
+  questions: ["Did the side/view prompts help at test time, when only the 5 official templates are used?"],
+  sugg: { c1: [2, "No clinical framing; uses anatomy to explain errors."], c2: [4, "Error-driven improvements tested over seeds; no CV."], c3: [3, "Side and view prompts from error analysis are a thoughtful addition."], c4: [2, "Notes data-limited errors; no risk discussion."], c5: [1, "Next-steps slide is mislabeled; no plan."], c6: [3, "Clear, but the next-steps slide is missing and some slides are unfinished."] } },
+
+{ id: "setu", name: "SETU", file: "summary_SETU.pptx", slides: 8,
+  title: "Fine-Tuning BiomedCLIP for CT Organ Recognition",
+  members: ["Harshal Patel", "Om Patel", "Rudra Patel", "Andrew Dodds"],
+  ba: 0.9921, baNote: "official evaluate.py; checkpoint and model chosen on val", auc: 0.9997, f1: 0.992, err: 19, views: [0.998, 0.991, 0.988],
+  approach: "Full image encoder fine-tuned (text frozen) with horizontal flips; single seed; best checkpoint by validation.",
+  tech: { text: false, peft: false, soup: "", tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
+  summary: "A clear depth study: adapter → last 2, 4, 6 blocks → full image encoder, with full fine-tuning best (99.21%). Error table by organ and view. Uses horizontal flips, which other teams found hurts sagittal views because left/right anatomy matters.",
+  method: ["Loss averaged over all 5 templates; 6 epochs, AdamW 1e-5", "Horizontal flip augmentation; seed 17", "Checkpoint kept at best mean five-template val accuracy"],
+  results: ["0.412 → 0.992; axial 99.8%", "Errors 44 → 19; lung coronal/sagittal weakest", "Acknowledges val-based selection makes 0.992 optimistic"],
+  strengths: ["Clean comparison of fine-tuning depth", "States the val-selection limitation"],
+  gaps: ["Single seed; no variance estimate", "Horizontal flips conflict with left/right anatomy", "No clinical framing or next steps"],
+  flags: [],
+  questions: ["Why keep horizontal flips when liver and spleen sit on opposite sides?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [3, "Reasonable depth study, but single seed and val-based selection limit confidence."], c3: [2, "Standard fine-tuning sweep."], c4: [2, "Acknowledges optimistic val; flips ignore anatomy."], c5: [1, "No next steps."], c6: [3, "Clear tables, little narrative."] } },
+
+{ id: "unknown-variables", name: "Unknown_Variables", file: "summary_Unknown_Variables.pptx", slides: 6,
+  title: "CT Organ Classification with Fine-Tuned BiomedCLIP",
+  members: [],
+  ba: 0.9921, baNote: "val used only to compare 14 candidates", auc: 0.9998, f1: 0.9921, err: 19, errApprox: true, views: null,
+  approach: "LoRA (r16) on attention layers of both towers plus projections (2.7 M parameters), merged; soup of 8 LoRA runs.",
+  tech: { text: true, peft: true, soup: "8 LoRA runs", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  summary: "A compact, sound LoRA approach on both encoders, with 15% of train held out for epoch selection before retraining on all of it. The 8-run soup is chosen for stability, not a higher score. The deck is short and still has placeholder team name and member fields.",
+  method: ["One of 5 official templates sampled per image", "Random resized crop only (flip tested: no gain)", "LoRA merged into base weights; one standard checkpoint"],
+  results: ["0.4121 → 0.9921; single runs 0.9883–0.9938", "Full fine-tune (lr 5e-6) 0.9846", "Largest gains: spleen 9% → 99.7%, bladder 17% → 97.7%"],
+  strengths: ["Held-out split for epoch selection, val used only for comparison", "Explicit noise threshold (~0.3 points)"],
+  gaps: ["Title slide still says 'Team name' and 'Team members'", "Only 6 slides; no error analysis, clinical framing or next steps"],
+  flags: [{ lvl: "warn", t: "Team members are not listed anywhere in the deck. Check the roster with the coordinator for conflicts of interest." }],
+  questions: ["Why did LoRA on both towers beat full fine-tuning here?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [4, "Sound held-out protocol and multi-run soup."], c3: [2, "LoRA on both towers is a standard choice."], c4: [2, "Notes noise and selection; nothing on risks."], c5: [1, "No next steps."], c6: [2, "Incomplete: placeholder team details and a very short deck."] } },
+
+{ id: "ufigemt", name: "UFiGEMT (iGEMT)", file: "summary_UFiGEMT.pptx", slides: 7,
+  title: "CT Organ Classification: Fine-tuning BiomedCLIP with residual image adaptors",
+  members: ["Nicole Pfefferkorn", "Youssef Alhamzawi", "Nicholas Marotta"],
+  ba: 0.9833, baNote: "official evaluate.py", auc: 0.9990, f1: 0.9833, err: 40, errApprox: true, views: null,
+  approach: "Residual image adapters (v3/v5 blended into v6), then joint FLYP-style fine-tuning of both encoders with the adapters; kidney/pancreas loss weights 1.25.",
+  tech: { text: true, peft: true, soup: "", tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
+  summary: "Explains FLYP ('finetune like you pretrain') well and adapts it to 8 classes. Builds residual adapters (95%) then joint fine-tuning (98.3%). Candid that class weighting gained only one image and should not be claimed as reliable. Deck has typos, a placeholder 'Results: …' title, and results only in images and notes.",
+  method: ["Both encoders with all 5 templates per step; label smoothing 0.1", "Adapters v3 and v5 blended 50/50", "Class-weighted variant for kidney and pancreas"],
+  results: ["Adapters 95.00% → fine-tuning + adapters 98.28% → weighted 98.30%", "Official 98.33%, macro AUC 0.9990", "Pancreas recall lowest at 95.33%"],
+  strengths: ["Good conceptual explanation of FLYP and why batch-contrastive loss is wrong with 8 classes", "Honest about a non-significant gain"],
+  gaps: ["Lower accuracy than most teams", "Typos ('Fire-tune'), organ list omits liver, unfinished result titles", "No seeds, CV, clinical framing or next steps"],
+  flags: [],
+  questions: ["What did the residual adapters add once both encoders were fine-tuned?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [3, "Working model and sensible approach; limited evaluation, single runs."], c3: [3, "Residual adapters combined with FLYP-style training is a modest original combination."], c4: [2, "Candid about weak gains; no risk discussion."], c5: [1, "No next steps."], c6: [2, "Typos, placeholder titles and results only in images."] } },
+
+{ id: "two-brain-cells", name: "Two_Brain_Cells", file: "summary_Two_Brain_Cells.pptx", slides: 8,
+  title: "Fine-Tuning BiomedCLIP for CT Organ Recognition",
+  members: ["Pooja Aslesha Kunchepu", "Divya Singh"],
+  ba: 0.9842, baNote: "official evaluate.py; epoch 12 chosen on val", auc: 0.9993, f1: 0.9841, err: 38, views: null,
+  approach: "Only the last two ViT blocks trained (14.2 M parameters), text frozen, mixed templates; single seed; best epoch chosen on validation.",
+  tech: { text: false, peft: false, soup: "", tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
+  summary: "A light-touch partial fine-tune with full traceability (every number tied to a HiPerGator job ID). Shows the overfitting curve after epoch 12 and is careful to say small single-seed differences prove nothing. Pancreas accounts for 18 of 38 errors.",
+  method: ["Last two vision blocks; one of 5 templates per batch; constant LR 1e-5", "Compared 8 configurations, one seed each", "Checkpoint selected at highest val accuracy (epoch 12)"],
+  results: ["41.21% → 98.42% (2,362 / 2,400)", "Training loss keeps falling while val declines after epoch 12", "Pancreas recall 94.0%, 18 of 38 errors"],
+  strengths: ["Traceable, candid reporting", "Shows overfitting rather than hiding it"],
+  gaps: ["Single seed and val-chosen epoch", "Lower accuracy; no clinical framing or next steps"],
+  flags: [],
+  questions: ["Why did you stop at two trainable blocks?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [3, "Working model with honest but limited evaluation (single seed, val selection)."], c3: [2, "Standard partial fine-tuning."], c4: [2, "Candid about uncertainty; no risk discussion."], c5: [1, "No next steps."], c6: [3, "Clear tables; few visuals or takeaways."] } },
+
+{ id: "visiontron", name: "VisionTron", file: "summary_VisionTron.pptx", slides: 9,
+  title: "Fine-Tuning BiomedCLIP for CT Organ Recognition (H08-B Spatial and Layer-Aware LoRA)",
+  members: [],
+  ba: null, baNote: "no official validation result reported", cvNote: "5-fold CV mean 97.39% (worst-template), SD 0.475 pp", auc: null, f1: null, err: null, views: null,
+  approach: "Spatial and layer-aware LoRA: ranks increase with depth, spatial adapters in middle blocks, MLP LoRA late, DoRA-style magnitude adaptation; text frozen.",
+  tech: { text: false, peft: true, soup: "", tta: false, cv: true, seeds: false, robust: false, errs: false, limits: true, clinical: false },
+  summary: "An interesting parameter-efficient design, but the submission is unfinished. The official 2,400-image validation run is marked 'pending', the reproducibility slide says scripts still need to be created and verified, the results slide sits after 'Thank You', and no team members are named.",
+  method: ["Blocks 0–3 LoRA r4; 4–7 r8 + spatial adapters; 8–11 r12 + MLP LoRA r4", "Five-template CE; early stopping on worst-template balanced accuracy", "5-fold cross-validation on train"],
+  results: ["CV folds 96.77–98.06%, mean 97.39%", "Official validation: not reported"],
+  strengths: ["Original layer-aware adapter design", "Selects on worst-template accuracy, a sensible robustness criterion", "Explicitly refuses to present unverified metrics"],
+  gaps: ["No official validation score, so results can't be compared with other teams", "Placeholders and to-dos left in the deck", "No team members listed"],
+  flags: [{ lvl: "danger", t: "Incomplete submission: no official validation result, and run scripts may not exist. Confirm with the organizers whether a scored checkpoint was submitted." }, { lvl: "warn", t: "Team members are not listed anywhere in the deck." }],
+  questions: ["Was a checkpoint submitted for the hidden test, and does it run with evaluate.py?"],
+  sugg: { c1: [2, "No clinical framing."], c2: [2, "Partially working: CV results only, official evaluation pending."], c3: [3, "Layer-aware LoRA with spatial adapters is a creative design."], c4: [2, "Transparent about unverified metrics; nothing else."], c5: [1, "No path to use; reproducibility steps incomplete."], c6: [1, "Unfinished deck with placeholders and slides out of order."] } }
+];
+
+/* ---------------- Helpers ---------------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pct = (v, d = 2) => v == null ? "—" : (v * 100).toFixed(d) + "%";
+const byId = Object.fromEntries(TEAMS.map(t => [t.id, t]));
+const pts = (s, w) => s ? s / 5 * w : 0;
+function suggTotal(t) { return CRIT.reduce((a, c) => a + pts(t.sugg[c.k][0], c.w), 0); }
+function sheetOf(id) { return (S.sheet.teams[id] ||= { s: {}, c: {}, strength: "", improve: "", coi: false }); }
+function myScore(id, k) { return S.sheet.teams[id]?.s?.[k] || null; }
+function myTotal(id) { const t = S.sheet.teams[id]; if (!t) return null; let n = 0, sum = 0; for (const c of CRIT) { const v = t.s[c.k]; if (v) { n++; sum += pts(v, c.w); } } return n === 6 ? sum : null; }
+function myCount(id) { const t = S.sheet.teams[id]; return t ? CRIT.filter(c => t.s[c.k]).length : 0; }
+function fmt1(n) { return n == null ? "—" : (Math.round(n * 10) / 10).toString(); }
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2600); }
+
+/* ---------------- State and persistence ---------------- */
+const LS_KEY = "ic3-judging-desk-v1";
+const S = {
+  sheet: { judge: "", teams: {}, updatedAt: 0 },
+  showSugg: true,
+  sort: { key: "sugg", dir: -1 },
+  current: TEAMS[0].id,
+  compare: ["zarn-vision", "3-little-piggies", "iarg", "emperors"],
+  store: null, // { ref } when db is available
+  view: "overview"
+};
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+(function loadLocal() {
+  const raw = lsGet(LS_KEY);
+  if (raw) { try { const o = JSON.parse(raw); if (o && o.teams) S.sheet = o; } catch (e) {} }
+  const ui = lsGet(LS_KEY + "-ui");
+  if (ui) { try { const o = JSON.parse(ui); if (typeof o.showSugg === "boolean") S.showSugg = o.showSugg; if (Array.isArray(o.compare)) S.compare = o.compare.filter(id => byId[id]).slice(0, 4); if (byId[o.current]) S.current = o.current; } catch (e) {} }
+})();
+function saveUi() { lsSet(LS_KEY + "-ui", JSON.stringify({ showSugg: S.showSugg, compare: S.compare, current: S.current })); }
+function setSaveState(kind, text) { const el = $("#save-state"); el.dataset.kind = kind; el.textContent = text; }
+
+let writeTimer = null, writing = false, pendingWrite = false;
+function persist() {
+  S.sheet.updatedAt = Date.now();
+  lsSet(LS_KEY, JSON.stringify(S.sheet));
+  if (!S.store) { setSaveState("local", "Saved in this browser"); return; }
+  setSaveState("busy", "Saving…");
+  clearTimeout(writeTimer);
+  writeTimer = setTimeout(flushWrite, 700);
+}
+async function flushWrite() {
+  if (!S.store) return;
+  if (writing) { pendingWrite = true; return; }
+  writing = true;
+  try {
+    await S.store.ref.set(JSON.parse(JSON.stringify(S.sheet)));
+    setSaveState("ok", "Saved to your account");
+  } catch (e) {
+    if (e && e.code === "invalid_argument") { S.store = null; setSaveState("local", "Saved in this browser"); }
+    else setSaveState("local", "Saved in this browser · sync failed");
+  } finally {
+    writing = false;
+    if (pendingWrite) { pendingWrite = false; flushWrite(); }
+  }
+}
+async function connectStore() {
+  try {
+    if (!window.claude || !window.claude.use) { setSaveState("local", "Saved in this browser"); return; }
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    const uid = user ? await user.id() : null;
+    if (!db || !uid) { setSaveState("local", "Saved in this browser"); return; }
+    const ref = db.doc("data/users/" + uid + "/sheet");
+    let settled = false;
+    const timer = setTimeout(() => { if (!settled) setSaveState("local", "Saved in this browser · account not reachable yet"); }, 10000);
+    ref.onSnapshot(snap => {
+      if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
+      const first = !settled;
+      if (first) { settled = true; clearTimeout(timer); S.store = { ref }; }
+      const remote = snap.exists ? snap.data() : null;
+      const rT = (remote && remote.updatedAt) || 0, lT = S.sheet.updatedAt || 0;
+      if (remote && remote.teams && rT > lT) {
+        // Newer scores from another device or tab: adopt them.
+        S.sheet = JSON.parse(JSON.stringify(remote));
+        lsSet(LS_KEY, JSON.stringify(S.sheet));
+        $("#judge-name").value = S.sheet.judge || "";
+        renderAll();
+        setSaveState("ok", "Saved to your account");
+      } else if (first && lT > rT) {
+        // Scores entered in this browser before the account answered: upload once.
+        setTimeout(flushWrite, 0);
+      } else if (first || rT === lT) {
+        setSaveState("ok", "Saved to your account");
+      }
+    }, () => { clearTimeout(timer); S.store = null; setSaveState("local", "Saved in this browser"); });
+  } catch (e) { setSaveState("local", "Saved in this browser"); }
+}
+
+/* ---------------- Rendering: overview ---------------- */
+function scoreCell(id, k, t) {
+  const mine = myScore(id, k);
+  if (mine) return `<span class="cell s${mine}" title="Your score: ${mine} (${SCALE[mine]})">${mine}</span>`;
+  if (S.showSugg) { const s = t.sugg[k][0]; return `<span class="cell sugg" title="Draft score ${s}: ${esc(t.sugg[k][1])}">${s}</span>`; }
+  return `<span class="cell empty">·</span>`;
+}
+function flagPills(t) {
+  const out = [];
+  t.flags.forEach(f => { if (f.lvl === "danger") out.push(`<span class="pill danger">${t.id === "visiontron" ? "Incomplete" : "Rule check"}</span>`); });
+  if (t.flags.some(f => /not listed/.test(f.t))) out.push(`<span class="pill warn">No roster</span>`);
+  if (t.flags.some(f => /faculty/.test(f.t))) out.push(`<span class="pill warn">Faculty member</span>`);
+  if (S.sheet.teams[t.id]?.coi) out.push(`<span class="pill danger">Recused</span>`);
+  return out.join(" ");
+}
+function sortVal(t, key) {
+  switch (key) {
+    case "name": return t.name.toLowerCase();
+    case "ba": return t.ba ?? -1;
+    case "err": return t.err ?? 9999;
+    case "sugg": return suggTotal(t);
+    case "mine": return myTotal(t.id) ?? -1;
+    case "done": return myCount(t.id);
+    default: return myScore(t.id, key) ?? (S.showSugg ? t.sugg[key][0] - 0.01 : 0);
+  }
+}
+function renderOverview() {
+  const el = $("#view-overview");
+  const withBa = TEAMS.filter(t => t.ba != null).map(t => t.ba).sort((a, b) => a - b);
+  const median = withBa[Math.floor(withBa.length / 2)];
+  const scored = TEAMS.filter(t => myCount(t.id) === 6).length;
+  const rows = [...TEAMS].sort((a, b) => {
+    const va = sortVal(a, S.sort.key), vb = sortVal(b, S.sort.key);
+    if (va < vb) return -1 * S.sort.dir; if (va > vb) return 1 * S.sort.dir; return 0;
+  });
+  const head = (key, label, cls = "") => {
+    const on = S.sort.key === key;
+    return `<th class="sortable ${cls}" data-sort="${key}" aria-sort="${on ? (S.sort.dir > 0 ? "ascending" : "descending") : "none"}">${label} <span class="arrow">${on ? (S.sort.dir > 0 ? "▲" : "▼") : ""}</span></th>`;
+  };
+  el.innerHTML = `
+    <div class="strip">
+      <div class="stat"><div class="v">21</div><div class="k">submissions, all on the same task (Track A)</div></div>
+      <div class="stat"><div class="v">${pct(withBa[0])}–${pct(withBa[withBa.length - 1])}</div><div class="k">validation balanced accuracy range (20 teams)</div></div>
+      <div class="stat"><div class="v">${pct(median)}</div><div class="k">median, from a 41.2% zero-shot start</div></div>
+      <div class="stat"><div class="v">${scored} / 21</div><div class="k">teams you have fully scored</div></div>
+    </div>
+    <div class="callout">
+      <h4 style="color:var(--warn)">Before you score</h4>
+      <ul>
+        <li>Every team solved the organizer-set task of naming the organ in a 224 × 224 CT crop with BiomedCLIP image–text similarity. Validation scores sit within about 1.3 points of each other, so differences in <b>rigor, honesty and framing</b> separate the teams more than accuracy does.</li>
+        <li>Only ZARN Vision argues clinical relevance or a path to adoption. Most teams will cluster at 2 on Clinical (25 pts) and 1–2 on Feasibility. Agree as a panel how to read those criteria for an assigned technical task.</li>
+        <li>Two submissions need an organizer check: <a class="team-link" href="#team-zarn-vision">ZARN Vision</a> (10-model ensemble, inference-time image cache, trained on val) and <a class="team-link" href="#team-visiontron">VisionTron</a> (no official validation result).</li>
+        <li>3 Little Piggies show that crop artifacts alone predict the organ at 0.917 accuracy, so every team's score may partly reflect acquisition artifacts rather than anatomy.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline">
+        <h3>All submissions</h3>
+        <div class="legend"><span><span class="cell s4" style="min-width:20px;height:18px">4</span> your score</span>${S.showSugg ? `<span><span class="cell sugg" style="min-width:20px;height:18px">4</span> draft score</span>` : ""}<span>Click a column to sort · click a team to open its sheet</span></div>
+      </div>
+      <div class="scroll" style="margin-top:10px">
+        <table>
+          <thead><tr>
+            ${head("name", "Team")}
+            ${head("ba", "Val BA", "r")}
+            ${head("err", "Errors", "r")}
+            ${CRIT.map(c => head(c.k, `${c.short} <span class="muted">${c.w}</span>`, "c")).join("")}
+            ${S.showSugg ? head("sugg", "Draft /100", "r") : ""}
+            ${head("mine", "Yours /100", "r")}
+            ${head("done", "Scored", "c")}
+            <th>Notes</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(t => {
+              const st = suggTotal(t), mt = myTotal(t.id);
+              return `<tr>
+                <td><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></td>
+                <td class="r num">${t.ba != null ? pct(t.ba) : `<span class="muted" title="${esc(t.cvNote || "")}">CV only</span>`}</td>
+                <td class="r num">${t.err != null ? (t.errApprox ? "≈" : "") + t.err : "—"}</td>
+                ${CRIT.map(c => `<td class="c">${scoreCell(t.id, c.k, t)}</td>`).join("")}
+                ${S.showSugg ? `<td class="r num">${fmt1(st)}</td>` : ""}
+                <td class="r num">${mt == null ? `<span class="muted">—</span>` : `<b>${fmt1(mt)}</b>`}</td>
+                <td class="c num">${myCount(t.id)}/6</td>
+                <td><div class="pills">${flagPills(t)}</div></td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:.8rem;margin-top:10px">Val BA is the balanced accuracy each team reports on the 2,400-image validation set from the organizers' evaluate.py. ≈ marks error counts derived from balanced accuracy where the deck gives none. Hidden-test scores are not in the submissions.</p>
+    </div>`;
+  el.querySelectorAll("th.sortable").forEach(th => th.addEventListener("click", () => {
+    const k = th.dataset.sort;
+    if (S.sort.key === k) S.sort.dir *= -1; else { S.sort.key = k; S.sort.dir = (k === "name" || k === "err") ? 1 : -1; }
+    renderOverview();
+  }));
+}
+
+/* ---------------- Rendering: team sheet ---------------- */
+function renderTeams() {
+  const el = $("#view-teams");
+  const t = byId[S.current];
+  const idx = TEAMS.indexOf(t);
+  const sh = sheetOf(t.id);
+  const mt = myTotal(t.id);
+  const partial = CRIT.reduce((a, c) => a + pts(sh.s[c.k], c.w), 0);
+  el.innerHTML = `
+    <div class="picker">
+      <button class="btn" type="button" id="prev-team" ${idx === 0 ? "disabled" : ""}>← Previous</button>
+      <select id="team-select" aria-label="Choose team">${TEAMS.map(x => `<option value="${x.id}" ${x.id === t.id ? "selected" : ""}>${esc(x.name)}${myCount(x.id) === 6 ? " ✓" : ""}</option>`).join("")}</select>
+      <button class="btn" type="button" id="next-team" ${idx === TEAMS.length - 1 ? "disabled" : ""}>Next →</button>
+      <span class="muted" style="font-size:.85rem">${idx + 1} of ${TEAMS.length}</span>
+    </div>
+    <div class="split">
+      <div class="stack">
+        <div class="panel team-head">
+          <h2>${esc(t.name)}</h2>
+          <p><b>${esc(t.title)}</b></p>
+          <p class="muted">${t.members.length ? esc(t.members.join(" · ")) : "<i>No team members listed in the deck</i>"}</p>
+          <p class="file">${esc(t.file)} · ${t.slides} slides</p>
+          <div class="tiles" style="margin-top:8px">
+            <div class="tile"><div class="v">${t.ba != null ? pct(t.ba) : "—"}</div><div class="k">Val balanced accuracy</div></div>
+            <div class="tile"><div class="v">${t.auc != null ? t.auc.toFixed(4) : "—"}</div><div class="k">Macro AUC</div></div>
+            <div class="tile"><div class="v">${t.err != null ? (t.errApprox ? "≈" : "") + t.err : "—"}</div><div class="k">Val errors of 2,400</div></div>
+            ${t.views ? `<div class="tile"><div class="v" style="font-size:.95rem">${t.views.map(v => (v * 100).toFixed(1)).join(" / ")}</div><div class="k">Axial / coronal / sagittal %</div></div>` : ""}
+          </div>
+          <p class="muted" style="font-size:.8rem">${esc(t.baNote || "")}${t.cvNote ? " · " + esc(t.cvNote) : ""}${t.errNote ? " · errors: " + esc(t.errNote) : ""}</p>
+        </div>
+        ${t.flags.length ? `<div class="stack">${t.flags.map(f => `<div class="flag ${f.lvl}"><b>${f.lvl === "danger" ? "Check" : f.lvl === "warn" ? "Note" : "Context"}</b><span>${esc(f.t)}</span></div>`).join("")}</div>` : ""}
+        <div class="panel">
+          <h4>Overview</h4>
+          <p style="margin-top:6px;max-width:72ch">${esc(t.summary)}</p>
+          <p style="margin-top:10px;font-size:.9rem"><b>Approach:</b> ${esc(t.approach)}</p>
+        </div>
+        <div class="panel two">
+          <div><h4>Method</h4><ul class="tight">${t.method.map(m => `<li>${esc(m)}</li>`).join("")}</ul></div>
+          <div><h4>Results reported</h4><ul class="tight">${t.results.map(m => `<li>${esc(m)}</li>`).join("")}</ul></div>
+        </div>
+        <div class="panel two">
+          <div><h4 style="color:var(--good)">Strengths</h4><ul class="tight">${t.strengths.map(m => `<li>${esc(m)}</li>`).join("")}</ul></div>
+          <div><h4 style="color:var(--danger)">Gaps</h4><ul class="tight">${t.gaps.map(m => `<li>${esc(m)}</li>`).join("")}</ul></div>
+        </div>
+        <div class="panel">
+          <h4>Questions to ask if they reach the finalist round</h4>
+          <ul class="tight">${t.questions.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
+        </div>
+      </div>
+      <div class="sheet panel" aria-label="Scoring sheet">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:baseline">
+          <h3>Your scoring sheet</h3>
+          <span class="muted" style="font-size:.8rem">Whole numbers 1–5 · points = score ÷ 5 × weight</span>
+        </div>
+        <label class="coi"><input type="checkbox" id="coi" ${sh.coi ? "checked" : ""}> Conflict of interest: recused from scoring this team</label>
+        ${CRIT.map(c => {
+          const v = sh.s[c.k] || null;
+          const sg = t.sugg[c.k];
+          return `<div class="crit">
+            <div class="crit-top"><b>${c.name}</b><span class="w">${c.w} pts</span></div>
+            ${S.showSugg ? `<div class="sugg-box">Draft <b>${sg[0]}</b> · ${esc(sg[1])}</div>` : ""}
+            <div class="scores" role="group" aria-label="${c.name} score">
+              ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-k="${c.k}" data-n="${n}" aria-pressed="${v === n}" title="${n}: ${SCALE[n]}">${n}</button>`).join("")}
+              ${v ? `<button type="button" class="clear" data-k="${c.k}" data-n="0">Clear</button>` : ""}
+              <span class="pts">${v ? fmt1(pts(v, c.w)) : "–"} / ${c.w}</span>
+            </div>
+            <details class="desc"><summary>Level descriptors</summary><ul><li><b>5:</b> ${esc(c.d5)}</li><li><b>3:</b> ${esc(c.d3)}</li><li><b>1:</b> ${esc(c.d1)}</li><li>4 and 2 fall between.</li></ul></details>
+            <textarea id="cm-${t.id}-${c.k}" data-k="${c.k}" class="cm" placeholder="Comment justifying your score">${esc(sh.c[c.k] || "")}</textarea>
+          </div>`;
+        }).join("")}
+        <div class="total-bar">
+          <span>Your total</span><span class="big">${mt != null ? fmt1(mt) : fmt1(partial)}</span><span class="muted">/ 100${mt == null ? ` · ${myCount(t.id)} of 6 scored` : ""}</span>
+          ${S.showSugg ? `<span class="muted" style="margin-left:auto">Draft total ${fmt1(suggTotal(t))}</span>` : ""}
+        </div>
+        ${S.showSugg ? `<button class="btn" type="button" id="use-sugg">Start from the draft scores</button>` : ""}
+        <div><h4>Greatest strength</h4><textarea id="st-${t.id}" class="free" data-f="strength" placeholder="One concrete strength">${esc(sh.strength)}</textarea></div>
+        <div><h4>Most important area to improve</h4><textarea id="im-${t.id}" class="free" data-f="improve" placeholder="One concrete improvement">${esc(sh.improve)}</textarea></div>
+      </div>
+    </div>`;
+  $("#team-select").addEventListener("change", e => goTeam(e.target.value));
+  $("#prev-team").addEventListener("click", () => goTeam(TEAMS[idx - 1].id));
+  $("#next-team").addEventListener("click", () => goTeam(TEAMS[idx + 1].id));
+  el.querySelectorAll(".scores button").forEach(b => b.addEventListener("click", () => {
+    const k = b.dataset.k, n = +b.dataset.n;
+    if (n) sh.s[k] = n; else delete sh.s[k];
+    persist(); renderTeams(); refreshBadges();
+  }));
+  el.querySelectorAll("textarea.cm").forEach(ta => ta.addEventListener("input", () => { sh.c[ta.dataset.k] = ta.value; persist(); }));
+  el.querySelectorAll("textarea.free").forEach(ta => ta.addEventListener("input", () => { sh[ta.dataset.f] = ta.value; persist(); }));
+  $("#coi").addEventListener("change", e => { sh.coi = e.target.checked; persist(); });
+  const us = $("#use-sugg");
+  if (us) us.addEventListener("click", () => {
+    CRIT.forEach(c => { if (!sh.s[c.k]) sh.s[c.k] = t.sugg[c.k][0]; });
+    persist(); renderTeams(); toast("Draft scores filled in where you had none. Adjust each one.");
+  });
+}
+function goTeam(id) { S.current = id; saveUi(); if (location.hash !== "#team-" + id) location.hash = "team-" + id; else renderTeams(); window.scrollTo(0, 0); }
+
+/* ---------------- Rendering: compare ---------------- */
+const TECH_ROWS = [
+  ["text", "Text encoder trained"], ["peft", "LoRA / adapters"], ["soup", "Weight averaging"], ["tta", "Test-time augmentation"],
+  ["cv", "Held-out split or CV on train"], ["seeds", "Multi-seed evidence"], ["robust", "Robustness or prompt tests"],
+  ["errs", "Error analysis"], ["limits", "Limitations stated"], ["clinical", "Clinical use framed"]
+];
+function renderCompare() {
+  const el = $("#view-compare");
+  const sel = S.compare.map(id => byId[id]).filter(Boolean);
+  const best = (vals, hi = true) => { const f = vals.filter(v => v != null); if (!f.length) return null; return hi ? Math.max(...f) : Math.min(...f); };
+  const baBest = best(sel.map(t => t.ba)), errBest = best(sel.map(t => t.err), false);
+  const row = (label, fn) => `<tr><th scope="row">${label}</th>${sel.map(t => `<td>${fn(t)}</td>`).join("")}</tr>`;
+  const sec = label => `<tr class="sec"><th colspan="${sel.length + 1}">${label}</th></tr>`;
+  el.innerHTML = `
+    <div class="panel">
+      <h3>Choose up to four teams</h3>
+      <div class="chips" style="margin-top:10px">${TEAMS.map(t => `<button type="button" class="chip" data-id="${t.id}" aria-pressed="${S.compare.includes(t.id)}">${esc(t.name)}</button>`).join("")}</div>
+    </div>
+    ${sel.length ? `<div class="panel"><div class="scroll"><table class="cmp">
+      <thead><tr><th scope="col"></th>${sel.map(t => `<th scope="col"><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></th>`).join("")}</tr></thead>
+      <tbody>
+        ${sec("Results")}
+        ${row("Val balanced accuracy", t => `<span class="num ${t.ba === baBest ? "best" : ""}">${t.ba != null ? pct(t.ba) : "—"}</span>`)}
+        ${row("Errors of 2,400", t => `<span class="num ${t.err === errBest ? "best" : ""}">${t.err != null ? (t.errApprox ? "≈" : "") + t.err : "—"}</span>`)}
+        ${row("Macro AUC", t => `<span class="num">${t.auc != null ? t.auc.toFixed(4) : "—"}</span>`)}
+        ${row("Axial / coronal / sagittal", t => `<span class="num">${t.views ? t.views.map(v => (v * 100).toFixed(1)).join(" / ") : "—"}</span>`)}
+        ${sec("Approach")}
+        ${row("Method", t => esc(t.approach))}
+        ${TECH_ROWS.map(([k, label]) => row(label, t => { const v = t.tech[k]; return v ? `<span class="yes">✓</span>${typeof v === "string" ? " " + esc(v) : ""}` : `<span class="muted">—</span>`; })).join("")}
+        ${sec("Scores")}
+        ${CRIT.map(c => row(`${c.short} (${c.w})`, t => { const m = myScore(t.id, c.k); const s = t.sugg[c.k]; return `${m ? `<span class="cell s${m}">${m}</span> ` : ""}${S.showSugg ? `<span class="muted" style="font-size:.82rem">Draft ${s[0]}: ${esc(s[1])}</span>` : (m ? "" : `<span class="muted">Not scored</span>`)}`; })).join("")}
+        ${row("Total /100", t => { const m = myTotal(t.id); return `<b class="num">${m != null ? fmt1(m) : "—"}</b>${S.showSugg ? ` <span class="muted num">(draft ${fmt1(suggTotal(t))})</span>` : ""}`; })}
+        ${sec("Assessment")}
+        ${row("Strengths", t => `<ul>${t.strengths.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`)}
+        ${row("Gaps", t => `<ul>${t.gaps.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`)}
+        ${row("Checks", t => t.flags.length ? t.flags.map(f => `<div class="flag ${f.lvl}" style="font-size:.82rem;margin-bottom:4px">${esc(f.t)}</div>`).join("") : `<span class="muted">None</span>`)}
+      </tbody></table></div></div>` : `<div class="panel muted">Pick at least one team above to compare.</div>`}`;
+  el.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.id;
+    if (S.compare.includes(id)) S.compare = S.compare.filter(x => x !== id);
+    else { if (S.compare.length >= 4) { toast("Compare holds four teams. Remove one first."); return; } S.compare.push(id); }
+    saveUi(); renderCompare();
+  }));
+}
+
+/* ---------------- Rendering: field analysis ---------------- */
+function chartSvg() {
+  const data = TEAMS.filter(t => t.ba != null).sort((a, b) => b.ba - a.ba);
+  const W = 860, rowH = 24, top = 30, left = 200, right = 70, H = top + data.length * rowH + 30;
+  const lo = 0.980, hi = 1.0;
+  const x = v => left + (v - lo) / (hi - lo) * (W - left - right);
+  const ticks = [0.980, 0.985, 0.990, 0.995, 1.0];
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Validation balanced accuracy by team, axis from 98.0% to 100%">`;
+  ticks.forEach(tk => { s += `<line class="grid" x1="${x(tk)}" x2="${x(tk)}" y1="${top - 6}" y2="${H - 24}"/><text class="tick" x="${x(tk)}" y="${H - 8}" text-anchor="middle">${(tk * 100).toFixed(1)}%</text>`; });
+  s += `<text class="tick" x="${left}" y="14">Axis starts at 98.0%: bar lengths exaggerate differences</text>`;
+  data.forEach((t, i) => {
+    const y = top + i * rowH;
+    const ens = t.id === "zarn-vision";
+    s += `<text x="${left - 8}" y="${y + 15}" text-anchor="end">${esc(t.name.replace(/ \(.*\)/, ""))}</text>`;
+    s += `<rect class="barr${ens ? " ens" : ""}" x="${left}" y="${y + 4}" width="${Math.max(2, x(t.ba) - left)}" height="${rowH - 9}" rx="2"/>`;
+    s += `<text class="val" x="${x(t.ba) + 6}" y="${y + 15}">${(t.ba * 100).toFixed(2)}${ens ? " *" : ""}</text>`;
+  });
+  return s + `</svg>`;
+}
+function renderField() {
+  const el = $("#view-field");
+  const count = k => TEAMS.filter(t => t.tech[k]).length;
+  el.innerHTML = `
+    <div class="panel">
+      <h3>Validation accuracy across the field</h3>
+      <p class="lede" style="margin-top:6px">Twenty teams report an official validation score; VisionTron reports cross-validation only (97.39%). The spread from first to last is 1.33 points, about 32 images out of 2,400. Several teams note that seed noise alone moves scores by 0.1–0.3 points.</p>
+      <div class="chart-box" style="margin-top:12px">${chartSvg()}</div>
+      <p class="muted" style="font-size:.8rem">* ZARN Vision's 99.38% comes from a 10-model ensemble with an image cache, retrained on train + val; their 5-fold mean is 99.15%. Shown in amber because it is not comparable to single-model scores until the organizers confirm the rules.</p>
+    </div>
+    <div class="panel">
+      <h3>Technique matrix</h3>
+      <p class="muted" style="font-size:.85rem;margin-top:4px">What each deck reports doing. Counts are out of 21.</p>
+      <div class="scroll" style="margin-top:10px"><table class="mx">
+        <thead><tr><th>Team</th>${TECH_ROWS.map(([k, l]) => `<th class="c" title="${l}">${l}<br><span class="muted num">${count(k)}</span></th>`).join("")}</tr></thead>
+        <tbody>${TEAMS.map(t => `<tr><td><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></td>${TECH_ROWS.map(([k]) => `<td class="c">${t.tech[k] ? `<span class="yes" title="${typeof t.tech[k] === "string" ? esc(t.tech[k]) : "Yes"}">✓</span>` : `<span class="no">·</span>`}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <h3>What the field shows</h3>
+      <div class="insights" style="margin-top:12px">
+        <div class="insight"><h4>Converged recipe</h4><p>Nearly every team trains with cross-entropy over the cosine similarity to all five official prompt templates, keeps the evaluator's scoring rule, and averages weights from several runs. Fine-tuning alone takes 41% to about 98–99%.</p></div>
+        <div class="insight"><h4>Saturated validation</h4><p>Teams that built their own held-out folds (Git_Happens, Kong, 3 Little Piggies, Emperors, ZARN) found validation too small to separate recipes. That extra evaluation is the clearest marker of technical quality here.</p></div>
+        <div class="insight"><h4>Shared failure modes</h4><p>Almost every team's residual errors are right-lung bases read as liver, sagittal pancreas read as kidney, and contrast-filled bladder. Several show the same crops fail across all models, which points to label ambiguity in the crops.</p></div>
+        <div class="insight"><h4>Anatomy-aware choices</h4><p>Most teams avoid horizontal flips because liver and spleen swap sides; TBD_Team_G and Falcons measured the cost on sagittal views. SETU kept flips. TBD_Team_A built side-aware prompts from its error analysis.</p></div>
+        <div class="insight"><h4>Shortcut risk</h4><p>3 Little Piggies show pixel statistics alone reach 0.917. Because each crop is the organ's bounding box resized to 224 px, upscaling reveals organ size. This affects how much any team's accuracy reflects anatomy.</p></div>
+        <div class="insight"><h4>Rubric coverage gaps</h4><p>Only ${count("clinical")} team frames clinical use; ${count("limits")} state limitations. No team discusses bias across patient groups, data privacy or human oversight beyond ZARN's mention of radiologist deferral.</p></div>
+      </div>
+    </div>`;
+}
+
+/* ---------------- Rendering: rubric ---------------- */
+function renderRubric() {
+  $("#view-rubric").innerHTML = `
+    <div class="panel">
+      <h3>Judging criteria</h3>
+      <p class="lede" style="margin-top:6px">Score each team 1–5 on six weighted criteria; points = score ÷ 5 × weight, for 100 in total. A team's submission score is the average of all judges' totals, and the top three advance to the 5:30 PM finalist presentations in MALA 2400A.</p>
+      <div class="scroll" style="margin-top:12px"><table class="rub">
+        <thead><tr><th>Criterion</th><th class="r">Weight</th><th>What judges look for</th><th>5 · Exceptional</th><th>3 · Adequate</th><th>1 · Insufficient</th></tr></thead>
+        <tbody>${CRIT.map(c => `<tr><td>${c.name}</td><td class="r num">${c.w}</td><td>${esc(c.look)}</td><td>${esc(c.d5)}</td><td>${esc(c.d3)}</td><td>${esc(c.d1)}</td></tr>`).join("")}</tbody>
+      </table></div>
+      <p class="muted" style="font-size:.85rem;margin-top:8px">Scores of 4 and 2 fall between the descriptors. 5 Exceptional · 4 Strong · 3 Adequate · 2 Limited · 1 Insufficient.</p>
+    </div>
+    <div class="two">
+      <div class="panel"><h3>Ties and conflicts</h3><ul class="tight">
+        <li>Ties break on higher average Clinical relevance, then higher average Responsible AI, then panel discussion and majority vote.</li>
+        <li>Don't score a team that includes your own trainee, lab member or close collaborator. Tick the recusal box on that team's sheet; its score is averaged across the remaining judges.</li>
+      </ul></div>
+      <div class="panel"><h3>Finalist round</h3><ul class="tight">
+        <li>Clarity of problem and solution (30), Demonstration of results (30), Response to judges' questions (25), Delivery and time management (15).</li>
+        <li>Final score = submission × 0.70 + presentation × 0.30 (weighting pending committee confirmation).</li>
+        <li>Each team sheet lists questions to ask if that team reaches the finalist round.</li>
+      </ul></div>
+    </div>
+    <div class="panel"><h3>Guidance for judges</h3><ul class="tight">
+      <li>Score independently before discussing teams. Turn off <b>Draft scores</b> in the top bar to score blind, then turn them on to compare.</li>
+      <li>Score each team against the descriptors, not against other teams. Use the full 1–5 range and reserve 5 for truly exceptional work.</li>
+      <li>Judge the work submitted, not the idea's potential. A focused, working prototype can outscore an ambitious unfinished one.</li>
+      <li>Write at least one specific comment per criterion, then export your scores and return them to the event coordinator before 5:30 PM.</li>
+    </ul></div>
+    <div class="callout info"><h4>About the draft scores</h4><p style="margin-top:4px">Draft scores and rationales were written by Claude from the 21 slide decks only: no code, demos or hidden-test results. They are a starting point for discussion. Your own scores are kept separately and are the only scores exported. On claude.ai they save privately to your account; elsewhere they save in this browser only, so export them before switching devices or clearing browser data.</p></div>`;
+}
+
+/* ---------------- Export ---------------- */
+function csvCell(v) { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function buildCsv() {
+  const head = ["Judge", "Team", "Project title", "Conflict of interest"];
+  CRIT.forEach(c => head.push(`${c.name} score`, `${c.name} points`, `${c.name} comment`));
+  head.push("Total /100", "Greatest strength", "Most important area to improve");
+  const lines = [head.map(csvCell).join(",")];
+  TEAMS.forEach(t => {
+    const sh = S.sheet.teams[t.id] || { s: {}, c: {} };
+    const r = [S.sheet.judge || "", t.name, t.title, sh.coi ? "Yes - recused" : "None"];
+    CRIT.forEach(c => { const v = sh.s?.[c.k]; r.push(v || "", v ? fmt1(pts(v, c.w)) : "", sh.c?.[c.k] || ""); });
+    const tot = myTotal(t.id);
+    r.push(sh.coi ? "" : (tot != null ? fmt1(tot) : ""), sh.strength || "", sh.improve || "");
+    lines.push(r.map(csvCell).join(","));
+  });
+  return lines.join("\n");
+}
+async function exportScores() {
+  const csv = buildCsv();
+  const name = "IC3-scores-" + ((S.sheet.judge || "judge").replace(/[^A-Za-z0-9]+/g, "-")) + ".csv";
+  try {
+    const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
+    if (dl) { await dl.save({ filename: name, data: csv }); toast("Scores saved as " + name); return; }
+  } catch (e) { if (e && e.code === "declined") return; }
+  if (!(window.claude && window.claude.use)) {
+    // Standalone hosting (e.g. GitHub Pages): a normal browser download works.
+    try {
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast("Scores downloaded as " + name); return;
+    } catch (e) {}
+  }
+  try { await navigator.clipboard.writeText(csv); toast("Scores copied to the clipboard as CSV"); }
+  catch (e) { showCopyFallback(csv); }
+}
+function showCopyFallback(csv) {
+  const el = $("#view-" + S.view);
+  const box = document.createElement("div");
+  box.className = "panel";
+  box.innerHTML = `<h3>Copy your scores</h3><p class="muted" style="margin:6px 0">Select all and copy this CSV, then paste it into a spreadsheet.</p><textarea class="copy-area" id="csv-out" readonly></textarea>`;
+  el.prepend(box);
+  const ta = $("#csv-out"); ta.value = csv; ta.focus(); ta.select();
+}
+
+/* ---------------- Routing ---------------- */
+function refreshBadges() { /* totals shown in overview are recomputed when that view renders */ }
+function route() {
+  const h = (location.hash || "#overview").slice(1);
+  let view = "overview";
+  if (h.startsWith("team-") && byId[h.slice(5)]) { view = "teams"; S.current = h.slice(5); saveUi(); }
+  else if (["overview", "teams", "compare", "field", "rubric"].includes(h)) view = h;
+  S.view = view;
+  document.querySelectorAll(".view").forEach(v => v.hidden = v.id !== "view-" + view);
+  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.view === view ? "page" : "false"));
+  renderView(view);
+}
+function renderView(v) { ({ overview: renderOverview, teams: renderTeams, compare: renderCompare, field: renderField, rubric: renderRubric })[v](); }
+function renderAll() { renderView(S.view); }
+
+$("#judge-name").value = S.sheet.judge || "";
+$("#judge-name").addEventListener("input", e => { S.sheet.judge = e.target.value; persist(); });
+$("#show-sugg").checked = S.showSugg;
+$("#show-sugg").addEventListener("change", e => { S.showSugg = e.target.checked; if (!S.showSugg && S.sort.key === "sugg") S.sort = { key: "name", dir: 1 }; saveUi(); renderAll(); });
+$("#export-btn").addEventListener("click", exportScores);
+document.querySelectorAll("nav.tabs a").forEach(a => a.addEventListener("click", e => {
+  if (a.dataset.view === "teams") { e.preventDefault(); location.hash = "team-" + S.current; }
+}));
+window.addEventListener("hashchange", route);
+if (!S.showSugg && S.sort.key === "sugg") S.sort = { key: "name", dir: 1 };
+setSaveState("local", "Saved in this browser");
+route();
+connectStore();
+</script>
+</body>
+</html>

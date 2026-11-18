@@ -1,0 +1,5 @@
+# Source materials stay local: submissions and rubric are not published
+*.zip
+*.docx
+*.pptx
+*.pdf
