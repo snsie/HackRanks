@@ -80,6 +80,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .save-state { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+a.dl { color: var(--accent); font-family: var(--font-data); font-size: .78rem; font-weight: 500; text-decoration: none; white-space: nowrap; text-transform: none; letter-spacing: 0; }
+a.dl:hover { text-decoration: underline; }
+a.btn { text-decoration: none; color: inherit; display: inline-block; }
 .save-state[data-kind="ok"]::before { content: "● "; color: var(--good); }
 .save-state[data-kind="local"]::before { content: "● "; color: var(--warn); }
 .save-state[data-kind="busy"]::before { content: "● "; color: var(--muted); }
@@ -612,6 +615,22 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pct = (v, d = 2) => v == null ? "—" : (v * 100).toFixed(d) + "%";
 const byId = Object.fromEntries(TEAMS.map(t => [t.id, t]));
+
+/* Submission downloads: decks live in submissions/ next to this page. */
+const FILE_BYTES = {
+  "summary_3_Little_Piggies.pptx": 346614, "summary_Carlos_Funk.pptx": 161235, "summary_CMIL_RockStars.pptx": 1289684,
+  "summary_Emperors.pptx": 1365079, "summary_EyeGEM.pptx": 574383, "summary_Falcons.pdf": 245075,
+  "summary_Git_Happens.pptx": 366446, "summary_HackIt.pptx": 1049451, "summary_IARG.pdf": 1727685,
+  "summary_Kong_Skull_Island.pptx": 1095384, "summary_MoE.pptx": 578091, "summary_Outliers.pptx": 958755,
+  "summary_SETU.pptx": 421408, "summary_TBD_Team_A.pptx": 336481, "summary_TBD_Team_C.pptx": 631007,
+  "summary_TBD_Team_G.pptx": 535677, "summary_Two_Brain_Cells.pptx": 331343, "summary_UFiGEMT.pptx": 572067,
+  "summary_Unknown_Variables.pptx": 344965, "summary_VisionTron.pptx": 39120, "summary_ZARN_Vision.pptx": 4400293
+};
+const ALL_ZIP = { href: "submissions/hackathon_presentations.zip", bytes: 16362983 };
+const deckUrl = t => "submissions/" + encodeURIComponent(t.file);
+const deckKind = t => t.file.split(".").pop().toUpperCase();
+const humanSize = b => b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB";
+const deckLink = (t, label) => `<a class="dl" href="${deckUrl(t)}" download title="Download ${esc(t.name)}'s submission (${deckKind(t)}, ${humanSize(FILE_BYTES[t.file] || 0)})">${label || `↓ ${deckKind(t)}`}</a>`;
 const pts = (s, w) => s ? s / 5 * w : 0;
 function suggTotal(t) { return CRIT.reduce((a, c) => a + pts(t.sugg[c.k][0], c.w), 0); }
 function sheetOf(id) { return (S.sheet.teams[id] ||= { s: {}, c: {}, strength: "", improve: "", coi: false }); }
@@ -757,12 +776,14 @@ function renderOverview() {
     <div class="panel">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline">
         <h3>All submissions</h3>
+        <a class="btn" href="${ALL_ZIP.href}" download>↓ Download all 21 submissions (ZIP, ${humanSize(ALL_ZIP.bytes)})</a>
         <div class="legend"><span><span class="cell s4" style="min-width:20px;height:18px">4</span> your score</span>${S.showSugg ? `<span><span class="cell sugg" style="min-width:20px;height:18px">4</span> draft score</span>` : ""}<span>Click a column to sort · click a team to open its sheet</span></div>
       </div>
       <div class="scroll" style="margin-top:10px">
         <table>
           <thead><tr>
             ${head("name", "Team")}
+            <th>Deck</th>
             ${head("ba", "Val BA", "r")}
             ${head("err", "Errors", "r")}
             ${CRIT.map(c => head(c.k, `${c.short} <span class="muted">${c.w}</span>`, "c")).join("")}
@@ -776,6 +797,7 @@ function renderOverview() {
               const st = suggTotal(t), mt = myTotal(t.id);
               return `<tr>
                 <td><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></td>
+                <td>${deckLink(t)}</td>
                 <td class="r num">${t.ba != null ? pct(t.ba) : `<span class="muted" title="${esc(t.cvNote || "")}">CV only</span>`}</td>
                 <td class="r num">${t.err != null ? (t.errApprox ? "≈" : "") + t.err : "—"}</td>
                 ${CRIT.map(c => `<td class="c">${scoreCell(t.id, c.k, t)}</td>`).join("")}
@@ -818,7 +840,7 @@ function renderTeams() {
           <h2>${esc(t.name)}</h2>
           <p><b>${esc(t.title)}</b></p>
           <p class="muted">${t.members.length ? esc(t.members.join(" · ")) : "<i>No team members listed in the deck</i>"}</p>
-          <p class="file">${esc(t.file)} · ${t.slides} slides</p>
+          <p class="file">${deckLink(t, `↓ Download submission (${deckKind(t)}, ${humanSize(FILE_BYTES[t.file] || 0)})`)} · ${esc(t.file)} · ${t.slides} slides</p>
           <div class="tiles" style="margin-top:8px">
             <div class="tile"><div class="v">${t.ba != null ? pct(t.ba) : "—"}</div><div class="k">Val balanced accuracy</div></div>
             <div class="tile"><div class="v">${t.auc != null ? t.auc.toFixed(4) : "—"}</div><div class="k">Macro AUC</div></div>
@@ -914,7 +936,7 @@ function renderCompare() {
       <div class="chips" style="margin-top:10px">${TEAMS.map(t => `<button type="button" class="chip" data-id="${t.id}" aria-pressed="${S.compare.includes(t.id)}">${esc(t.name)}</button>`).join("")}</div>
     </div>
     ${sel.length ? `<div class="panel"><div class="scroll"><table class="cmp">
-      <thead><tr><th scope="col"></th>${sel.map(t => `<th scope="col"><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></th>`).join("")}</tr></thead>
+      <thead><tr><th scope="col"></th>${sel.map(t => `<th scope="col"><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a><br>${deckLink(t, `↓ ${deckKind(t)}, ${humanSize(FILE_BYTES[t.file] || 0)}`)}</th>`).join("")}</tr></thead>
       <tbody>
         ${sec("Results")}
         ${row("Val balanced accuracy", t => `<span class="num ${t.ba === baBest ? "best" : ""}">${t.ba != null ? pct(t.ba) : "—"}</span>`)}

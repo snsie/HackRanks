@@ -1,5 +1,6 @@
-# Source materials stay local: submissions and rubric are not published
-*.zip
-*.docx
-*.pptx
-*.pdf
+# Local copies in the project root stay out of the repo.
+# Published submissions live in submissions/ and the rubric is not published.
+/*.zip
+/*.docx
+/*.pptx
+/*.pdf
