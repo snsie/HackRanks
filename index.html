@@ -195,8 +195,8 @@ details.desc ul { margin: 6px 0 0; padding-left: 18px; font-size: .84rem; color:
 .chart-box text { fill: var(--ink); font-family: var(--font-body); font-size: 12px; }
 .chart-box .tick { fill: var(--muted); font-family: var(--font-data); font-size: 11px; }
 .chart-box .grid { stroke: var(--line); stroke-width: 1; }
-.chart-box .barr { fill: var(--accent); }
-.chart-box .barr.ens { fill: var(--warn); }
+.chart-box .test-point { fill: var(--accent); }
+.chart-box .test-reference { fill: var(--surface); stroke: var(--warn); stroke-width: 2; }
 .chart-box .val { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
 .mx td.c { font-size: 1rem; }
 .tech-trial { color: var(--warn); font-size: .78rem; font-weight: 600; white-space: nowrap; }
@@ -1058,33 +1058,44 @@ function renderCompare() {
 }
 
 /* ---------------- Rendering: field analysis ---------------- */
-function chartSvg() {
-  const data = TEAMS.filter(t => t.ba != null).sort((a, b) => b.ba - a.ba);
-  const W = 860, rowH = 24, top = 30, left = 200, right = 70, H = top + data.length * rowH + 30;
-  const lo = 0.980, hi = 1.0;
+function testChartSvg(ranked, reference) {
+  const W = 860, rowH = 24, top = 26, left = 224, right = 76;
+  const referenceTop = top + ranked.length * rowH;
+  const H = referenceTop + (reference.length + 1) * rowH + 28;
+  const ticks = [0.88, 0.90, 0.92, 0.94, 0.96, 0.98];
+  const lo = ticks[0], hi = ticks[ticks.length - 1];
   const x = v => left + (v - lo) / (hi - lo) * (W - left - right);
-  const ticks = [0.980, 0.985, 0.990, 0.995, 1.0];
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Validation balanced accuracy by team, axis from 98.0% to 100%">`;
-  ticks.forEach(tk => { s += `<line class="grid" x1="${x(tk)}" x2="${x(tk)}" y1="${top - 6}" y2="${H - 24}"/><text class="tick" x="${x(tk)}" y="${H - 8}" text-anchor="middle">${(tk * 100).toFixed(1)}%</text>`; });
-  s += `<text class="tick" x="${left}" y="14">Axis starts at 98.0%: bar lengths exaggerate differences</text>`;
-  data.forEach((t, i) => {
-    const y = top + i * rowH;
-    const ens = t.id === "zarn-vision";
-    s += `<text x="${left - 8}" y="${y + 15}" text-anchor="end">${esc(t.name.replace(/ \(.*\)/, ""))}</text>`;
-    s += `<rect class="barr${ens ? " ens" : ""}" x="${left}" y="${y + 4}" width="${Math.max(2, x(t.ba) - left)}" height="${rowH - 9}" rx="2"/>`;
-    s += `<text class="val" x="${x(t.ba) + 6}" y="${y + 15}">${(t.ba * 100).toFixed(2)}${ens ? " *" : ""}</text>`;
-  });
-  return s + `</svg>`;
+  const row = (result, y) => {
+    const name = esc(byId[result.id].name);
+    const label = result.rank == null ? name : `#${result.rank} ${name}`;
+    const score = pct(result.ba);
+    const point = x(result.ba);
+    return `<text x="${left - 12}" y="${y + 4}" text-anchor="end">${label}</text>
+      <circle class="${result.rank == null ? "test-reference" : "test-point"}" cx="${point}" cy="${y}" r="4"/>
+      <text class="val" x="${point + 9}" y="${y + 4}">${score}</text>`;
+  };
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="field-test-title field-test-description">
+    <title id="field-test-title">Held-out test balanced accuracy by team</title>
+    <desc id="field-test-description">Dots show test balanced accuracy on an axis from ${pct(lo, 0)} to ${pct(hi, 0)}. Solid dots follow official rank order. Hollow dots below the divider show reference-only results. The Test results tab contains a table with the exact values.</desc>
+    ${ticks.map(tick => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top - 12}" y2="${H - 24}"/>
+      <text class="tick" x="${x(tick)}" y="${H - 8}" text-anchor="middle">${pct(tick, 0)}</text>`).join("")}
+    ${ranked.map((result, index) => row(result, top + index * rowH)).join("")}
+    <line class="grid" x1="12" x2="${W - right}" y1="${referenceTop - 12}" y2="${referenceTop - 12}"/>
+    <text class="tick" x="${left - 12}" y="${referenceTop + 4}" text-anchor="end">Reference only</text>
+    ${reference.map((result, index) => row(result, referenceTop + (index + 1) * rowH)).join("")}
+  </svg>`;
 }
 function renderField() {
   const el = $("#view-field");
   const count = k => TEAMS.filter(t => t.tech[k]).length;
+  const ranked = TEST_RESULTS.filter(result => result.rank != null);
+  const reference = TEST_RESULTS.filter(result => result.rank == null);
   el.innerHTML = `
     <div class="panel">
-      <h3>Validation accuracy across the field</h3>
-      <p class="lede" style="margin-top:6px">Twenty teams report an official validation score; VisionTron reports cross-validation only (97.39%). The spread from first to last is 1.33 points, about 32 images out of 2,400. Several teams note that seed noise alone moves scores by 0.1–0.3 points.</p>
-      <div class="chart-box" style="margin-top:12px">${chartSvg()}</div>
-      <p class="muted" style="font-size:.8rem">* ZARN Vision's 99.38% comes from a 10-model ensemble with an image cache, retrained on train + val; their 5-fold mean is 99.15%. The ensemble’s test results are shown for reference because the final submission required a single fine-tuned model.</p>
+      <h3>Held-out test performance</h3>
+      <p class="lede" style="margin-top:6px">The ${ranked.length} ranked teams scored ${pct(ranked[ranked.length - 1].ba)} to ${pct(ranked[0].ba)} in test balanced accuracy. The chart follows the official test-set ranks.</p>
+      <div class="chart-box" style="margin-top:12px">${testChartSvg(ranked, reference)}</div>
+      <p class="muted" style="font-size:.85rem;margin-top:6px">See <a class="team-link" href="#test-results">Test results</a> for exact scores, macro AUC, macro F1, inference times, and the reasons for reference-only status.</p>
     </div>
     <div class="panel">
       <h3>Technique matrix</h3>
@@ -1096,10 +1107,9 @@ function renderField() {
       </table></div>
     </div>
     <div class="panel">
-      <h3>What the field shows</h3>
+      <h3>What teams reported</h3>
       <div class="insights" style="margin-top:12px">
-        <div class="insight"><h4>Converged recipe</h4><p>Nearly every team trains with cross-entropy over the cosine similarity to all five official prompt templates, keeps the evaluator's scoring rule, and averages weights from several runs. Fine-tuning alone takes 41% to about 98–99%.</p></div>
-        <div class="insight"><h4>Saturated validation</h4><p>Teams that built their own held-out folds (Git_Happens, Kong, 3 Little Piggies, Emperors, ZARN) found validation too small to separate recipes. That extra evaluation is the clearest marker of technical quality here.</p></div>
+        <div class="insight"><h4>Converged recipe</h4><p>Nearly every team trains with cross-entropy over the cosine similarity to all five official prompt templates, keeps the evaluator's scoring rule, and averages weights from several runs.</p></div>
         <div class="insight"><h4>Shared failure modes</h4><p>Almost every team's residual errors are right-lung bases read as liver, sagittal pancreas read as kidney, and contrast-filled bladder. Several show the same crops fail across all models, which points to label ambiguity in the crops.</p></div>
         <div class="insight"><h4>Anatomy-aware choices</h4><p>Most teams avoid horizontal flips because liver and spleen swap sides; TBD_Team_G and Falcons measured the cost on sagittal views. SETU kept flips. TBD_Team_A built side-aware prompts from its error analysis.</p></div>
         <div class="insight"><h4>Shortcut risk</h4><p>3 Little Piggies show pixel statistics alone reach 0.917. Because each crop is the organ's bounding box resized to 224 px, upscaling reveals organ size. This affects how much any team's accuracy reflects anatomy.</p></div>
