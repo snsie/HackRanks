@@ -199,8 +199,8 @@ details.desc ul { margin: 6px 0 0; padding-left: 18px; font-size: .84rem; color:
 .chart-box .barr.ens { fill: var(--warn); }
 .chart-box .val { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
 .mx td.c { font-size: 1rem; }
+.tech-trial { color: var(--warn); font-size: .78rem; font-weight: 600; white-space: nowrap; }
 .yes { color: var(--accent); font-weight: 700; }
-.no { color: var(--line); }
 .insights { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .insight { border-top: 2px solid var(--accent); padding-top: 10px; }
 .insight p { font-size: .9rem; color: var(--muted); margin-top: 4px; }
@@ -295,13 +295,14 @@ const SCALE = { 5: "Exceptional", 4: "Strong", 3: "Adequate", 2: "Limited", 1: "
    ba/auc/f1: validation-set numbers the team reports from the official evaluate.py.
    errApprox: error count derived from balanced accuracy (2,400 balanced images) where the deck gives none.
    sugg: draft 1-5 scores with a one-line reason each. */
+const trial = note => ({ note });
 const TEAMS = [
 { id: "zarn-vision", name: "ZARN Vision", file: "summary_ZARN_Vision.pptx", slides: 10,
   title: "BiomedCLIP CT Organ Classification with Stable Fine-Tuning Strategy",
   members: ["Zijian Xu", "Anabel Chang", "Renjie Liang", "Dr. Naveen Baskaran"],
   ba: 0.9938, baNote: "official split with the ensemble; 99.33% from an official evaluate.py run; 99.15% mean over 5 folds", auc: 0.9999, f1: null, err: 20, errNote: "per 2,400 (fold average)", views: null,
   approach: "LoRA warm-up, then full image-encoder fine-tuning; weights averaged over epochs 2–5; 10-member ensemble (5 × 224 px + 5 × 336 px) plus a label-free training-image cache.",
-  tech: { text: false, peft: true, soup: "Epoch averaging + 10-member ensemble", tta: false, cv: true, seeds: true, robust: false, errs: true, limits: true, clinical: true },
+  tech: { text: false, peft: "LoRA warm-up before full image-encoder fine-tuning (slide 4).", soup: "Averaged epochs 2–5 within each member. The ten-member ensemble averaged scores at inference (slide 4).", tta: trial("Tested flip and zoom at inference and dropped them (slides 6 and 10)."), cv: true, seeds: true, robust: "Measured the impact of denoising, blur, and test-time flip or zoom (slide 6).", errs: true, limits: true, clinical: true },
   summary: "Starts from a teammate's single fine-tuned model (99.12% on one lucky seed) and shows it is unstable: across 5 folds × 5 seeds the same recipe ranges 97.1–99.2%. Builds a stable system with weight averaging, a two-resolution ensemble and a nearest-neighbour image cache, reaching 99.15% mean across 5 folds with fold spread cut from 2.1 to 0.6 points. The only deck with a dedicated clinical-relevance slide.",
   method: ["Step 1: LoRA warm-up (41.2% → 98.1%); step 2: full fine-tuning (→ 99.1%, one run)", "Step 3: average weights of epochs 2–5; train 10 members at 224 px and 336 px", "Label-free cache pulls each image toward its 2 most similar training images (strength 0.3)", "Every choice decided on paired 5-fold × 5-seed comparisons; final members retrained on all 16,800 crops"],
   results: ["5-fold CV mean 97.71% (single model) → 99.15% (final)", "Official split 99.38%, macro AUC 99.99%", "Errors per fold 55 → 20; pancreas ↔ kidney is 47 of 102 remaining errors", "Ablation table of 10 ideas with kept / dropped verdicts"],
@@ -316,7 +317,7 @@ const TEAMS = [
   members: ["William \"Max\" Kieffer", "Edward Kempa", "Serban Negoita"],
   ba: 0.9904, baNote: "reproduced by the organizers' check script", auc: 0.9999, f1: 0.990, err: 23, views: [0.995, 0.994, 0.983],
   approach: "Image encoder fine-tuned against the 40 official prompts (text frozen); two-seed weight soup; 7-view test-time augmentation.",
-  tech: { text: false, peft: false, soup: "2 seeds", tta: true, cv: true, seeds: true, robust: true, errs: true, limits: true, clinical: false },
+  tech: { text: trial("Fine-tuned the text encoder experimentally. The final model froze it (slides 3 and 5)."), peft: false, soup: "2 seeds", tta: true, cv: true, seeds: true, robust: true, errs: true, limits: true, clinical: false },
   summary: "A disciplined, pre-registered workflow: every change was judged on a held-out fold of the training set and kept only if it cleared a +0.3-point bar set in advance. Adds two integrity checks (held-out fold vs val; a shuffled-label run lands at chance) and the field's most important scientific finding: crop artifacts alone (upscaling, intensity) predict the organ at 0.917, so models may be learning acquisition artifacts rather than anatomy.",
   method: ["Cross-entropy over 8 cosine similarities averaged over all 5 templates; AdamW 1e-5, 12 epochs", "5-fold CV on train with neighbouring slices kept together; +0.3-point keep rule fixed before running", "Kept: 12 epochs (+0.33), TTA (+0.30). Dropped 8 ideas incl. text tuning (−0.17), stronger aug (−1.63)"],
   results: ["Balanced accuracy 0.41 → 0.99; every view gains 56–59 points", "All 5 templates 0.991–0.992; every organ ≥ 96.7% recall", "Held-out fold 0.982 vs val 0.990 (consistent ~1-pt gap); shuffled labels 0.128 (chance 0.125)", "Boosted trees on 41 pixel statistics alone reach 0.917; 23 val errors, 14 a 'hard core' missed by nearly every model"],
@@ -331,7 +332,7 @@ const TEAMS = [
   members: ["Kweku Yamoah", "Kevin Scroggins"],
   ba: 0.9900, baNote: "official evaluate.py; 99.06% mean over templates", auc: 0.9998, f1: 0.990, err: 24, errApprox: true, errNote: "21 images wrong under all 5 templates", views: [0.998, 0.990, 0.984],
   approach: "Three stages: Align (train text projection on cached frozen image features), encoder fine-tuning with EMA, uniform 3-seed weight average.",
-  tech: { text: true, peft: false, soup: "3 seeds (uniform)", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: true, clinical: false },
+  tech: { text: "Trained the text projection for alignment, then froze the text side during image fine-tuning (slide 4).", peft: trial("Evaluated CLIP-Adapter during ablations (slide 7)."), soup: "3 seeds (uniform)", tta: trial("Tested flip averaging and four geometric views at inference (slide 7)."), cv: false, seeds: true, robust: true, errs: true, limits: "Discussed validation selection bias and systematic errors across seeds (slides 4, 8, and 9).", clinical: false },
   summary: "The most analytically grounded deck. Diagnoses why zero-shot fails: image embeddings sit in a narrow cone and the 'heart' prompt is closest to its centre, so 881 of 2,400 images are called heart. Designs a three-stage method from that diagnosis, measures each stage, and tests on 8 unseen templates and organ synonyms. 14 cited references.",
   method: ["Probe shows frozen features already separate organs (93.8%), so first align the text side only (val 93.2%)", "Then fine-tune the image encoder from the aligned start (LP-FT analogue); logit scale 30, EMA 0.995", "Uniform average of 3 seeds to avoid picking a lucky seed on val", "11 automated checks incl. bit-identical preprocessing and zero-shot reproduction"],
   results: ["41.2% → 99.0%; sagittal 39.4% → 98.4%", "Template spread 6.8 → 0.04 points; 99.0% on 8 unseen templates, 98.9% with synonyms ('renal parenchyma')", "Mean image–image cosine 0.67 → 0.07; ablations show intensity augmentation hurts by 1.5–2.0 points", "Per-organ × view recall heatmap and angle-based error visualisation"],
@@ -346,7 +347,7 @@ const TEAMS = [
   members: ["Harishwar Reddy Kasireddy", "Jamie L. Fermin", "Vishal Balaji Sivaraman", "Junfu Cheng"],
   ba: 0.9925, baNote: "95% CI over pseudo-patients [0.9870, 0.9971]", auc: 0.9998, f1: 0.9925, err: 18, errApprox: true, views: [0.9950, 0.9962, 0.9863],
   approach: "Image-only fine-tuning (text frozen), 5 seeds weight-averaged; 32 alternatives tested against a pre-written rule with bootstrap confidence intervals.",
-  tech: { text: false, peft: "Tested LoRA and used it in an early model. The final model used image-only fine-tuning.", soup: "5 seeds", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  tech: { text: trial("Compared full fine-tuning with image-only fine-tuning. The final-model slide describes a frozen text encoder (slides 6, 8, and 12)."), peft: trial("Reported LoRA in earlier or alternate models. The final-model slide describes image-only fine-tuning (slides 4, 9, and 12)."), soup: "5 seeds", tta: false, cv: true, seeds: true, robust: false, errs: "Showed the sagittal confusion matrix and per-organ recall for the final model (slide 7).", limits: true, clinical: false },
   summary: "The most statistically careful submission. Compares LoRA, full and image-only fine-tuning on a fair held-out split, then tests 32 alternatives (SAM, Lipsum-FT, surgical fine-tuning, greedy soup, task arithmetic, Model Stock) using confidence intervals over pseudo-patients and a decision rule written before results. None beat the simple image-only recipe, and they say so.",
   method: ["Six-step project story; each step answers the previous one's question", "Own 12,000 / 2,400 split of train for method comparison; organizers' val used once as a test", "Bootstrap CIs over ~8-slice pseudo-patients; P(better) reported for every comparison", "Final: image encoder + projection, AdamW 2e-5, 11 epochs, 5-seed average"],
   results: ["0.9925 on val, CI [0.9870, 0.9971]; +0.29 pp over earlier model, CI [+0.04, +0.72]", "Sagittal 0.9863 is the weakest view", "32 alternatives, 8 from recent papers: none clearly better on new patients", "Transparency notes on optimistic numbers and an unplanned look at two SAM runs"],
@@ -361,7 +362,7 @@ const TEAMS = [
   members: ["David Portilla Gutierrez", "Noah Hassan", "Jeffrey Cui"],
   ba: 0.9958, baNote: "official evaluate.py; highest validation score in the field", auc: 0.9999, f1: 0.9958, err: 10, views: null,
   approach: "Full fine-tuning of both towers with a CosFace margin and EMA; 112 checkpoints; greedy weight soup of 8.",
-  tech: { text: true, peft: false, soup: "Greedy, 8 of 67", tta: false, cv: false, seeds: true, robust: false, errs: true, limits: true, clinical: false },
+  tech: { text: true, peft: trial("Evaluated rank-16 LoRA against full fine-tuning (slides 4 and 8)."), soup: "Greedy, 8 of 67", tta: trial("Tested TTA and reported two to seven additional errors (slides 3 and 8)."), cv: false, seeds: true, robust: false, errs: true, limits: true, clinical: false },
   summary: "Highest validation accuracy (99.58%, 10 errors). Trained 67 checkpoints the first night and 45 more, then built a greedy weight soup. Candid about the catch: soup ingredients were picked on val, so they ran a split-half check (99.57% on the picking half vs 99.25% on the unseen half) and estimate 99.2–99.3% on the hidden test.",
   method: ["Both towers trained end to end; logit scale frozen at 85.23; each batch draws one official template", "CosFace margin m = 0.1 in training only; full fine-tuning beat LoRA r16 (99.17 vs 98.92)", "Edge-filled rotation so no black corners; zoom-out only so the organ stays in frame; no flips", "Greedy soup: add a checkpoint only if val accuracy rises (or ties with lower log-loss)"],
   results: ["0.411 → 0.9958; macro AUC 0.9999", "10 of 2,400 wrong: 7 right-lung, 2 pancreas, 1 bladder", "Border-safe augmentation was the biggest single gain", "Expected hidden-test 99.2–99.3% from split-half analysis"],
@@ -376,7 +377,7 @@ const TEAMS = [
   members: ["Anay Sinhal", "Omer Kahveci", "Rushi Patel"],
   ba: 0.9900, baNote: "official evaluate.py; one run of the final recipe", auc: 0.9999, f1: 0.990, err: 24, views: [0.993, 0.995, 0.983],
   approach: "Frozen text encoder; last 8 of 12 image blocks trained; safety margin plus softer training temperature (scale 50).",
-  tech: { text: false, peft: false, soup: "", tta: false, cv: false, seeds: true, robust: false, errs: true, limits: true, clinical: false },
+  tech: { text: trial("Tried training the text side. The final model froze it (slides 4 and 6)."), peft: trial("Tested both small image-encoder adapters and LoRA (slide 6)."), soup: "", tta: false, cv: false, seeds: true, robust: false, errs: true, limits: true, clinical: false },
   summary: "Roughly 300 training runs, each idea tested on 8–16 seeds with paired comparisons against a plain run on the same seed. Finds two small tweaks (a margin and a softer temperature) beat bigger changes such as adapters, CoOp, distillation, SAM and LoRA. Written in plain language that a clinician could follow.",
   method: ["Freeze text encoder; train last 8 image layers on all 5 wordings; 2 epochs, ~1.5 min per run", "Margin: true organ must win by a clear gap; temperature 50 in training (100 at test)", "Kept an idea only if it helped consistently across paired seeds"],
   results: ["99.0% balanced accuracy (2,376 / 2,400); sagittal 98.3% weakest", "Final recipe +13 images vs plain, better in 8 of 8 runs", "LoRA −8 images, SAM −1; adapters, CoOp, distillation small gains not kept", "24 errors; 14 sagittal; pancreas → kidney most common"],
@@ -391,7 +392,7 @@ const TEAMS = [
   members: ["Divyansh Agarwal", "Prathmesh Santosh Choudhari", "Shaun Noel Jose"],
   ba: 0.9933, baNote: "official evaluate.py", auc: 0.9997, f1: 0.993, err: 16, views: [0.996, 0.995, 0.989],
   approach: "LoRA r16 on the image encoder (1.28 M trainable parameters) with an adaptive loss that up-weights the weakest organ × view groups; 3-seed weight soup.",
-  tech: { text: false, peft: true, soup: "3 seeds", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: true, clinical: false },
+  tech: { text: trial("Compared image-plus-text LoRA. The selected model used image-only LoRA (slides 3 and 4)."), peft: true, soup: "3 seeds", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: true, clinical: false },
   summary: "Shows LoRA matches full fine-tuning with 1.5% of the parameters. Adds a loss that up-weights the worst-performing organ × view groups, a perturbation robustness study, and an honest choice of the soup over a luckier single seed, confirmed on fresh pre-registered seeds.",
   method: ["Compared 7 candidates from QKV-only LoRA to full encoder; same data and selection rule", "LoRA r16 on qkv + proj + head; adaptive group-weighted loss; 10 epochs", "Three seeds' merged encoders averaged into one model"],
   results: ["0.412 → 0.993; errors 1,411 → 16", "Soup beats single seed under every synthetic change except contrast", "Noise training fixes noise and brightness but costs 0.5 clean points", "Pancreas (0.79) and bladder (0.88) drop most under the strongest combined change"],
@@ -406,7 +407,7 @@ const TEAMS = [
   members: ["Shrimayee", "Nandhan", "Siddharth"],
   ba: 0.9825, baNote: "official evaluate.py", auc: 0.9993, f1: 0.9825, err: 42, views: [0.9858, 0.9812, 0.9807],
   approach: "Both towers fine-tuned; 15 per-view, per-fold specialist teachers distilled into one student model; worst-template loss and CosFace margin.",
-  tech: { text: true, peft: false, soup: "", tta: false, cv: true, seeds: false, robust: true, errs: true, limits: false, clinical: false },
+  tech: { text: true, peft: false, soup: trial("Evaluated a three-model weight soup and kept the single distilled student (slide 10)."), tta: false, cv: "Used out-of-fold predictions from five-fold teachers to train the student (slide 5).", seeds: false, robust: true, errs: true, limits: "Reported uncertainty on validation and concentrated errors in a few organ pairs (slides 7 and 9).", clinical: false },
   summary: "The most original method in the field: a generalist model, then 15 specialist teachers (3 views × 5 folds) that label only out-of-fold images, then a single student trained on true labels plus its view's teacher. Adapts Hinton's specialist distillation so the submission stays one ordinary BiomedCLIP. Lowest validation score among teams with official results (98.25%), with a modest +0.26-point gain from distillation.",
   method: ["Loss over all 40 prompts every step: 0.5 · mean + 0.5 · worst template", "CosFace margin 0.25 (removing it costs 0.34 pts); template-consistency term", "Layer-wise LR + EMA; CT-safe augmentation, no flips; sagittal sampled 1.5×"],
   results: ["Generalist 98.00% → student 98.26%; every view improves", "Worst prompt 98.17%, best 98.33%: 0.16-point spread", "42 val errors; bladder → pancreas and pancreas → kidney most frequent", "Weight soup was 0.10 pts higher but under their 0.20 gate, so not used"],
@@ -421,7 +422,7 @@ const TEAMS = [
   members: ["Dinesh Reddy Ande", "Ashmit Sharma"],
   ba: 0.9938, baNote: "official evaluate.py, offline on the final folder", auc: 0.9992, f1: 0.9938, err: 15, views: [0.9963, 0.9950, 0.9900],
   approach: "Image encoder at 336 px input (text frozen); 5-seed uniform weight average; choices made by written rules on grouped cross-validation.",
-  tech: { text: false, peft: false, soup: "5 seeds", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  tech: { text: trial("Tested text-encoder fine-tuning. The final model froze it (slides 4, 5, and 9)."), peft: false, soup: "5 seeds", tta: trial("Tested shift TTA and dropped it after a small cross-validation gain, lower validation accuracy, and longer runtime (slide 6)."), cv: true, seeds: true, robust: "Reported the same official validation score across all five prompt templates (slide 7).", errs: false, limits: true, clinical: false },
   summary: "Recognizes that validation is saturated and builds a 3-fold cross-validation on groups of visually similar training images as a harder stress test (96–97% vs 99%). Screens 8 changes, combines 4, then confirms with 3 seeds per fold under rules written in advance. Documents an override of its own rule (skipping TTA) with reasons.",
   method: ["Screen → combine → confirm; each run compared with baseline on the same seed and fold", "AdamW 3e-5, batch 32, 16-epoch cosine; mild scale and shift augmentation", "5 identical runs, different seeds, averaged into one checkpoint"],
   results: ["99.38% val, 15 errors; same score under all five templates", "Seed averaging is the reliable gain (+0.27 pts on CV)", "336 px helped kidney; rotation, text training, 448 px did not add"],
@@ -436,7 +437,7 @@ const TEAMS = [
   members: ["Gauri Hanumant Kulkarni", "Harika Mekala", "Ashrita Yanala"],
   ba: 0.9888, baNote: "official evaluate.py; last epoch only", auc: 0.9998, f1: 0.9887, err: 27, views: [0.993, 0.990, 0.984],
   approach: "Image encoder fully fine-tuned, text encoder gently tuned (1e-6); 21 runs weight-averaged; last epoch only, never chosen on val.",
-  tech: { text: true, peft: false, soup: "21 runs", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: false, clinical: false },
+  tech: { text: true, peft: false, soup: "21 runs", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: "Identified ambiguous two-organ crops where targeted augmentation did not improve errors (slides 8 and 9).", clinical: false },
   summary: "Measures noise first (±0.1% across seeds) and only trusts gains above it. Averages 21 runs into one model, never selects an epoch on validation, and replicates the entire experiment set from scratch in a second folder (scores match within ±0.002). Error analysis shows most mistakes are crops where a neighbouring organ fills the frame.",
   method: ["Train on 100 × cosine, the same score evaluate.py uses; loss averaged over all 5 phrasings", "No flips (a flipped liver lands on the spleen side)", "Soup decisions written before scoring; every 'win' re-tested on more seeds"],
   results: ["0.4121 → 0.9888; macro AUC 0.9998", "All 5 templates 98.3–99.4% (zero-shot 36–46%)", "Train 99.14% vs val 98.88%: 0.26% gap", "27 errors; pancreas → kidney and right lung → liver are over half"],
@@ -451,7 +452,7 @@ const TEAMS = [
   members: ["Xuan Nhat Hoang", "Tran Mai Anh Truong"],
   ba: 0.9933, baNote: "organizer's evaluation command", auc: 1.0, f1: 0.9933, err: 16, errApprox: true, views: null,
   approach: "Two stages: projector-only training (LP-FT), then full fine-tuning of both encoders with sharpness-aware minimization (SAM); 5-fold grouped CV.",
-  tech: { text: true, peft: false, soup: "", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  tech: { text: true, peft: false, soup: "", tta: trial("Tested TTA and dropped it from the final recipe (slide 5)."), cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
   summary: "Focuses on generalization: notices a train–val distribution shift (likely a patient split), so treats val as a held-out test and builds 5-fold CV with correlated slices grouped. Each improvement is shown on both CV and val, adding up from 0.9774 to 0.9923 CV. Retains logs, code and checkpoints for every run.",
   method: ["Stage 1 (2 epochs): train projectors only; stage 2 (15 epochs): full fine-tuning with SAM", "Mild augmentation; no TTA", "Folds keep correlated image groups together"],
   results: ["Ladder: baseline 0.9774 → tuned 0.9862 → +SAM 0.9884 → +LP-FT 0.9894 → +aug/longer 0.9923 (CV)", "Final val 0.9933; lung (0.973) and pancreas (0.977) weakest"],
@@ -481,7 +482,7 @@ const TEAMS = [
   members: ["Mingkai Chen", "Zhiyu Wang", "Jherome Santos", "Krisztina Zsigmond"],
   ba: 0.9946, baNote: "official evaluate.py", auc: 0.9999, f1: 0.995, err: 13, views: null,
   approach: "Frozen text encoder; full image encoder with label-smoothed CE and a small cosine margin; uniform soup of 5 fine-tunes; no augmentation.",
-  tech: { text: false, peft: false, soup: "5 runs", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: false, clinical: false },
+  tech: { text: false, peft: false, soup: "5 runs", tta: false, cv: false, seeds: true, robust: true, errs: true, limits: "Identified ambiguous crops, blurry sagittal images, and contrast-filled bladder as persistent failure cases (slide 9).", clinical: false },
   summary: "Second-highest validation score (99.46%, 13 errors). A five-ingredient soup beats every member. Error review explains failures in imaging terms: lung crops that mostly show liver or heart, and contrast-filled bladder that looks like bone.",
   method: ["All 12 ViT blocks + projection; LR 2e-5 / 1e-4; margin 0.02–0.03", "No augmentation (crops are standardized)", "Uniform soup; blending check shows soup sits at the optimum"],
   results: ["41.2% → 99.5%; macro F1 0.386 → 0.995", "14–16 errors whichever template is used", "Hard mining moved errors between pancreas and kidney; TTA hurt"],
@@ -511,7 +512,7 @@ const TEAMS = [
   members: ["David Weisglass", "Ilya Sobolev", "Sriya Boddapati", "Shruti Sreekanth"],
   ba: 0.9900, baNote: "official evaluate.py; final-epoch EMA, no val epoch selection", auc: 0.9999, f1: 0.990, err: 24, errApprox: true, views: null,
   approach: "Both encoders jointly fine-tuned with label smoothing and EMA; final-epoch weights; 3-crop test-time augmentation.",
-  tech: { text: true, peft: false, soup: "", tta: true, cv: false, seeds: false, robust: true, errs: true, limits: false, clinical: false },
+  tech: { text: true, peft: false, soup: "", tta: true, cv: false, seeds: false, robust: true, errs: true, limits: "Reported sensitivity to Gaussian pixel noise in the stress test (slide 8).", clinical: false },
   summary: "A standard joint fine-tune that avoids val-based epoch selection. Adds an 8-condition perturbation stress test (98.50% mean; worst case 95.92% under pixel noise) and shows all 2,400 images get the same class under every template.",
   method: ["CE on image–text similarity for all 5 templates; 10 epochs, AdamW, cosine", "Label smoothing 0.1; EMA; final-epoch weights", "TTA: full, 90% and 80% centre crops averaged"],
   results: ["0.9900 balanced accuracy; macro AUC 0.9999", "Perfect recall on femur, heart, liver, spleen; lung 96.67% lowest", "Stress test: 98.50% mean, 95.92% with Gaussian noise", "2,400 / 2,400 consistent across templates"],
@@ -526,7 +527,7 @@ const TEAMS = [
   members: ["Ava Aguilar", "Aaron Ghosh", "Aditya Chhabria", "Lilly Liu"],
   ba: 0.9929, baNote: "official evaluate.py", auc: 0.9997, f1: 0.9929, err: 17, views: [0.995, 0.994, 0.990],
   approach: "Both encoders fine-tuned; hard organs oversampled; training-only side and view prompts ('a sagittal CT image of the right lung'); 3-model soup; 4-view TTA.",
-  tech: { text: true, peft: false, soup: "3 models", tta: true, cv: false, seeds: true, robust: false, errs: true, limits: false, clinical: false },
+  tech: { text: true, peft: false, soup: "3 models", tta: true, cv: false, seeds: true, robust: false, errs: true, limits: "Identified repeated errors on neighbouring slices and ambiguous lung-base crops (slide 7).", clinical: false },
   summary: "Error analysis drives the method: every lung and kidney error was on the right side, so they oversampled right-sided organs and added left/right and view prompts. Notes errors come in near-identical pairs of neighbouring slices from about 8 cases, and that every model misses the same crops.",
   method: ["Random template per image; right lung and right kidney 2×, bladder and pancreas 1.5×", "Training-only prompts naming side and view", "Soup of 3 models; TTA over 4 views"],
   results: ["41.3% → 99.29%; spleen +91 pts", "~30 variants tested, differences under ±0.1% treated as noise", "17 errors from about 8 distinct cases, mostly right-lung base"],
@@ -541,7 +542,7 @@ const TEAMS = [
   members: ["Harshal Patel", "Om Patel", "Rudra Patel", "Andrew Dodds"],
   ba: 0.9921, baNote: "official evaluate.py; checkpoint and model chosen on val", auc: 0.9997, f1: 0.992, err: 19, views: [0.998, 0.991, 0.988],
   approach: "Full image encoder fine-tuned (text frozen) with horizontal flips; single seed; best checkpoint by validation.",
-  tech: { text: false, peft: false, soup: "", tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
+  tech: { text: false, peft: trial("Tested a residual adapter with frozen encoders. The selected model used full image-encoder fine-tuning (slides 3–5)."), soup: "", tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
   summary: "A clear depth study: adapter → last 2, 4, 6 blocks → full image encoder, with full fine-tuning best (99.21%). Error table by organ and view. Uses horizontal flips, which other teams found hurts sagittal views because left/right anatomy matters.",
   method: ["Loss averaged over all 5 templates; 6 epochs, AdamW 1e-5", "Horizontal flip augmentation; seed 17", "Checkpoint kept at best mean five-template val accuracy"],
   results: ["0.412 → 0.992; axial 99.8%", "Errors 44 → 19; lung coronal/sagittal weakest", "Acknowledges val-based selection makes 0.992 optimistic"],
@@ -556,7 +557,7 @@ const TEAMS = [
   members: [],
   ba: 0.9921, baNote: "val used only to compare 14 candidates", auc: 0.9998, f1: 0.9921, err: 19, errApprox: true, views: null,
   approach: "LoRA (r16) on attention layers of both towers plus projections (2.7 M parameters), merged; soup of 8 LoRA runs.",
-  tech: { text: true, peft: true, soup: "8 LoRA runs", tta: false, cv: true, seeds: true, robust: false, errs: false, limits: true, clinical: false },
+  tech: { text: true, peft: true, soup: "8 LoRA runs", tta: false, cv: true, seeds: true, robust: false, errs: "Identified bladder–pancreas and lung–liver as the main remaining confusions (slide 5).", limits: true, clinical: false },
   summary: "A compact, sound LoRA approach on both encoders, with 15% of train held out for epoch selection before retraining on all of it. The 8-run soup is chosen for stability, not a higher score. The deck is short and still has placeholder team name and member fields.",
   method: ["One of 5 official templates sampled per image", "Random resized crop only (flip tested: no gain)", "LoRA merged into base weights; one standard checkpoint"],
   results: ["0.4121 → 0.9921; single runs 0.9883–0.9938", "Full fine-tune (lr 5e-6) 0.9846", "Largest gains: spleen 9% → 99.7%, bladder 17% → 97.7%"],
@@ -571,7 +572,7 @@ const TEAMS = [
   members: ["Nicole Pfefferkorn", "Youssef Alhamzawi", "Nicholas Marotta"],
   ba: 0.9833, baNote: "official evaluate.py", auc: 0.9990, f1: 0.9833, err: 40, errApprox: true, views: null,
   approach: "Residual image adapters (v3/v5 blended into v6), then joint FLYP-style fine-tuning of both encoders with the adapters; kidney/pancreas loss weights 1.25.",
-  tech: { text: true, peft: true, soup: "", tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
+  tech: { text: true, peft: true, soup: "Blended the v3 and v5 residual image adapters 50/50 to initialize v6 (slide 3).", tta: false, cv: false, seeds: false, robust: false, errs: "Compared errors by organ before and after reweighting. Pancreas recall remained the lowest (slide 6).", limits: true, clinical: false },
   summary: "Explains FLYP ('finetune like you pretrain') well and adapts it to 8 classes. Builds residual adapters (95%) then joint fine-tuning (98.3%). Candid that class weighting gained only one image and should not be claimed as reliable. Deck has typos, a placeholder 'Results: …' title, and results only in images and notes.",
   method: ["Both encoders with all 5 templates per step; label smoothing 0.1", "Adapters v3 and v5 blended 50/50", "Class-weighted variant for kidney and pancreas"],
   results: ["Adapters 95.00% → fine-tuning + adapters 98.28% → weighted 98.30%", "Official 98.33%, macro AUC 0.9990", "Pancreas recall lowest at 95.33%"],
@@ -586,7 +587,7 @@ const TEAMS = [
   members: ["Pooja Aslesha Kunchepu", "Divya Singh"],
   ba: 0.9842, baNote: "official evaluate.py; epoch 12 chosen on val", auc: 0.9993, f1: 0.9841, err: 38, views: null,
   approach: "Only the last two ViT blocks trained (14.2 M parameters), text frozen, mixed templates; single seed; best epoch chosen on validation.",
-  tech: { text: false, peft: false, soup: "", tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
+  tech: { text: trial("Fine-tuned the last text block in a trial. The selected model froze the text encoder (slides 3–5)."), peft: trial("Evaluated vision LoRA at 10 and 20 epochs (slides 4 and 5)."), soup: trial("Averaged vision checkpoints from epochs 8–10 as an experiment (slide 4)."), tta: false, cv: false, seeds: false, robust: false, errs: true, limits: true, clinical: false },
   summary: "A light-touch partial fine-tune with full traceability (every number tied to a HiPerGator job ID). Shows the overfitting curve after epoch 12 and is careful to say small single-seed differences prove nothing. Pancreas accounts for 18 of 38 errors.",
   method: ["Last two vision blocks; one of 5 templates per batch; constant LR 1e-5", "Compared 8 configurations, one seed each", "Checkpoint selected at highest val accuracy (epoch 12)"],
   results: ["41.21% → 98.42% (2,362 / 2,400)", "Training loss keeps falling while val declines after epoch 12", "Pancreas recall 94.0%, 18 of 38 errors"],
@@ -1002,10 +1003,18 @@ function goTeam(id) { S.current = id; saveUi(); if (location.hash !== "#team-" +
 
 /* ---------------- Rendering: compare ---------------- */
 const TECH_ROWS = [
-  ["text", "Text encoder trained"], ["peft", "LoRA / adapters"], ["soup", "Weight averaging"], ["tta", "Test-time augmentation"],
+  ["text", "Text-side training"], ["peft", "LoRA / adapters"], ["soup", "Checkpoint averaging"], ["tta", "Test-time augmentation"],
   ["cv", "Held-out split or CV on train"], ["seeds", "Multi-seed evidence"], ["robust", "Robustness or prompt tests"],
   ["errs", "Error analysis"], ["limits", "Limitations stated"], ["clinical", "Clinical use framed"]
 ];
+function techniqueCell(value, showDetails = false) {
+  if (!value) return '<span class="muted" title="No deck evidence">—</span>';
+  const tested = typeof value === "object";
+  const note = tested ? value.note : typeof value === "string" ? value : "";
+  const label = tested ? "Tested" : "✓";
+  return `<span class="${tested ? "tech-trial" : "yes"}" title="${esc(note || "Reported")}">${label}</span>${showDetails && note ? " " + esc(note) : ""}`;
+}
+
 function renderCompare() {
   const el = $("#view-compare");
   const sel = S.compare.map(id => byId[id]).filter(Boolean);
@@ -1031,7 +1040,7 @@ function renderCompare() {
         ${row("Axial / coronal / sagittal", t => `<span class="num">${t.views ? t.views.map(v => (v * 100).toFixed(1)).join(" / ") : "—"}</span>`)}
         ${sec("Approach")}
         ${row("Method", t => esc(t.approach))}
-        ${TECH_ROWS.map(([k, label]) => row(label, t => { const v = t.tech[k]; return v ? `<span class="yes">✓</span>${typeof v === "string" ? " " + esc(v) : ""}` : `<span class="muted">—</span>`; })).join("")}
+        ${TECH_ROWS.map(([k, label]) => row(label, t => techniqueCell(t.tech[k], true))).join("")}
         ${sec("Scores")}
         ${CRIT.map(c => row(`${c.short} (${c.w})`, t => { const m = myScore(t.id, c.k); const s = t.sugg[c.k]; return `${m ? `<span class="cell s${m}">${m}</span> ` : ""}${S.showSugg ? `<span class="muted" style="font-size:.82rem">Draft ${s[0]}: ${esc(s[1])}</span>` : (m ? "" : `<span class="muted">Not scored</span>`)}`; })).join("")}
         ${row("Total /100", t => { const m = myTotal(t.id); return `<b class="num">${m != null ? fmt1(m) : "—"}</b>${S.showSugg ? ` <span class="muted num">(draft ${fmt1(suggTotal(t))})</span>` : ""}`; })}
@@ -1079,10 +1088,11 @@ function renderField() {
     </div>
     <div class="panel">
       <h3>Technique matrix</h3>
-      <p class="muted" style="font-size:.85rem;margin-top:4px">What each deck reports doing. Counts are out of 21.</p>
+      <p class="muted" style="font-size:.85rem;margin-top:4px"><strong>✓</strong> Used in the reported approach or analysis. <strong>Tested</strong> Evaluated as an experiment. <strong>—</strong> No evidence in the deck. Counts include both ✓ and Tested.
+        Use Compare to read the evidence notes side by side. Checkpoint averaging covers weights from separate runs or saved checkpoints.</p>
       <div class="scroll" style="margin-top:10px"><table class="mx">
         <thead><tr><th>Team</th>${TECH_ROWS.map(([k, l]) => `<th class="c" title="${l}">${l}<br><span class="muted num">${count(k)}</span></th>`).join("")}</tr></thead>
-        <tbody>${TEAMS.map(t => `<tr><td><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></td>${TECH_ROWS.map(([k]) => `<td class="c">${t.tech[k] ? `<span class="yes" title="${typeof t.tech[k] === "string" ? esc(t.tech[k]) : "Yes"}">✓</span>` : `<span class="no">·</span>`}</td>`).join("")}</tr>`).join("")}</tbody>
+        <tbody>${TEAMS.map(t => `<tr><td><a class="team-link" href="#team-${t.id}">${esc(t.name)}</a></td>${TECH_ROWS.map(([k]) => `<td class="c">${techniqueCell(t.tech[k])}</td>`).join("")}</tr>`).join("")}</tbody>
       </table></div>
     </div>
     <div class="panel">
